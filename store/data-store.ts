@@ -121,7 +121,7 @@ const mockClients: Client[] = [
   },
 ]
 
-export const useDataStore = create<DataState>((set, get) => ({
+export const useDataStore = create<DataState>((set, _get) => ({
   projects: [],
   invoices: [],
   clients: [],
