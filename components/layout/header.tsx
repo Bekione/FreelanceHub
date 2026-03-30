@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Menu, Moon, Sun, Monitor, LogOut } from "lucide-react";
@@ -31,6 +32,9 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuthStore();
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
+  // Prevent hydration mismatch — theme is undefined on the server
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const pageTitle = pageTitles[pathname] ?? "FreelanceHub";
 
@@ -40,8 +44,6 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
     else setTheme("light");
   };
 
-  const ThemeIcon = theme === "dark" ? Sun : theme === "light" ? Moon : Monitor;
-
   const initials = user?.name
     ? user.name
         .split(" ")
@@ -50,6 +52,32 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
         .toUpperCase()
         .slice(0, 2)
     : "?";
+
+  // Render a placeholder button until mounted to avoid hydration mismatch
+  const ThemeButton = () => {
+    if (!mounted) {
+      return (
+        <Button variant="ghost" size="icon" aria-label="Toggle theme">
+          <Monitor className="h-4 w-4" />
+        </Button>
+      );
+    }
+
+    const ThemeIcon =
+      theme === "dark" ? Sun : theme === "light" ? Moon : Monitor;
+
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={cycleTheme}
+        title={`Theme: ${theme}`}
+        aria-label={`Switch theme, current: ${theme}`}
+      >
+        <ThemeIcon className="h-4 w-4" />
+      </Button>
+    );
+  };
 
   return (
     <header className="bg-card border-b border-border px-4 py-3 shrink-0">
@@ -67,14 +95,7 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={cycleTheme}
-            title={`Theme: ${theme}`}
-          >
-            <ThemeIcon className="h-4 w-4" />
-          </Button>
+          <ThemeButton />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

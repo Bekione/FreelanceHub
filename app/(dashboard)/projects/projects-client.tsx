@@ -228,7 +228,7 @@ export function ProjectsContent() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <p className="text-sm text-muted-foreground line-clamp-3 min-h-[3rem]">
+                  <p className="text-sm text-muted-foreground line-clamp-3 min-h-12">
                     {project.description}
                   </p>
 

@@ -38,7 +38,10 @@ export default function RootLayout({
         spaceGrotesk.variable,
       )}
     >
-      <body className="min-h-full bg-background text-foreground font-sans">
+      <body
+        className="min-h-full bg-background text-foreground font-sans"
+        suppressHydrationWarning
+      >
         <Providers>{children}</Providers>
       </body>
     </html>
