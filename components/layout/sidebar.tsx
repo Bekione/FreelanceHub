@@ -1,25 +1,37 @@
-"use client"
-import { Link, useLocation } from "react-router-dom"
-import { motion, AnimatePresence } from "framer-motion"
-import { LayoutDashboard, FolderOpen, FileText, Users, User, X } from "lucide-react"
-import { cn } from "../../lib/utils"
-import { Button } from "../ui/button"
+"use client";
+
+import Link from "next/link";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard,
+  FolderOpen,
+  FileText,
+  Users,
+  User,
+  Clock,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
-  open: boolean
-  setOpen: (open: boolean) => void
+  open: boolean;
+  setOpen: (open: boolean) => void;
 }
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Projects", href: "/projects", icon: FolderOpen },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Clients", href: "/clients", icon: Users },
+  { name: "Time Tracking", href: "/time-tracking", icon: Clock },
   { name: "Profile", href: "/profile", icon: User },
-]
+];
 
-export default function Sidebar({ open, setOpen }: SidebarProps) {
-  const location = useLocation()
+export function Sidebar({ open, setOpen }: SidebarProps) {
+  const pathname = usePathname();
 
   return (
     <>
@@ -27,6 +39,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       <AnimatePresence>
         {open && (
           <motion.div
+            key="backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -36,61 +49,84 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         )}
       </AnimatePresence>
 
-      {/* Sidebar */}
-      <motion.div
+      {/* Sidebar panel */}
+      <motion.aside
         initial={false}
-        animate={{
-          x: open ? 0 : "-100%",
-        }}
+        animate={{ x: open ? 0 : "-100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border lg:static lg:translate-x-0 lg:z-0",
-          open ? "" : "lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-64 flex flex-col",
+          "bg-sidebar border-r border-sidebar-border",
+          "lg:static lg:translate-x-0 lg:z-0",
         )}
       >
-        <div className="flex h-full flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">F</span>
-              </div>
-              <span className="font-semibold text-lg">FreelanceHub</span>
+        {/* Brand */}
+        <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border shrink-0">
+          <div className="flex items-center gap-2">
+            <Image src="/logo.png" alt="Logo" width={150} height={32} />
+            {/* <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-sm">
+              <span className="text-primary-foreground font-bold text-sm font-heading">
+                F
+              </span>
             </div>
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
+            <span className="font-semibold text-lg font-heading text-sidebar-foreground">
+              FreelanceHub
+            </span> */}
           </div>
-
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            {navigation.map((item) => {
-              const isActive = location.pathname === item.href
-              return (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  onClick={() => {
-                    // Close sidebar only on mobile after navigation
-                    if (window.innerWidth < 1024) {
-                      setOpen(false)
-                    }
-                  }}
-                  className={cn(
-                    "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent",
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.name}</span>
-                </Link>
-              )
-            })}
-          </nav>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden text-sidebar-foreground hover:bg-sidebar-accent"
+            onClick={() => setOpen(false)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-      </motion.div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+          {navigation.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => {
+                  if (
+                    typeof window !== "undefined" &&
+                    window.innerWidth < 1024
+                  ) {
+                    setOpen(false);
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
+                  isActive
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+                )}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                <span>{item.name}</span>
+                {isActive && (
+                  <motion.div
+                    layoutId="sidebar-active-indicator"
+                    className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary-foreground/60"
+                  />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Bottom hint */}
+        <div className="px-4 py-3 border-t border-sidebar-border shrink-0">
+          <p className="text-xs text-sidebar-foreground/40 text-center">
+            FreelanceHub v1.0
+          </p>
+        </div>
+      </motion.aside>
     </>
-  )
+  );
 }

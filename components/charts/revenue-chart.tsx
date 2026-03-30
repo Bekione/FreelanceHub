@@ -13,7 +13,7 @@ import {
   Legend,
   Filler,
 } from "chart.js"
-import { useTheme } from "../theme-provider"
+import { useTheme } from "@/components/theme-provider"
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
