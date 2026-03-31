@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Menu, Moon, Sun, Monitor, LogOut } from "lucide-react";
+import { Menu, Moon, Sun, Monitor, LogOut, Loader2 } from "lucide-react";
 import { useSession, signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +37,8 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
   const pathname = usePathname();
   // Prevent hydration mismatch — theme is undefined on the server
   const [mounted, setMounted] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   useEffect(() => setMounted(true), []);
 
   const pageTitle = pageTitles[pathname] ?? "FreelanceHub";
@@ -47,11 +49,16 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
     else setTheme("light");
   };
 
-  const handleLogout = async () => {
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent dropdown from closing immediately
+    setIsLoggingOut(true);
     await signOut({
       fetchOptions: {
         onSuccess: () => {
           router.push("/login"); // Immediately enforce redirect
+        },
+        onError: () => {
+          setIsLoggingOut(false);
         },
       },
     });
@@ -140,9 +147,14 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
                 onClick={handleLogout}
                 variant="destructive"
                 className="cursor-pointer"
+                disabled={isLoggingOut}
               >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
+                {isLoggingOut ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <LogOut className="mr-2 h-4 w-4" />
+                )}
+                <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

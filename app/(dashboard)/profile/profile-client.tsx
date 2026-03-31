@@ -1,17 +1,35 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Camera, Save, User, ShieldCheck } from "lucide-react";
-import { useSession } from "@/lib/auth-client";
+import {
+  Camera,
+  Save,
+  User,
+  ShieldCheck,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
+import { useSession, authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,58 +37,202 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 
 export function ProfileContent() {
+  const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user;
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+  // Profile Form State
+  const [profileData, setProfileData] = useState({ name: "" });
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+
+  // Password Form State
+  const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Danger Zone State
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Avatar Upload State
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isRemovingAvatar, setIsRemovingAvatar] = useState(false);
 
   // Initialize form with user data once it's available
   useEffect(() => {
     if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        name: user.name || "",
-        email: user.email || "",
-      }));
+      setProfileData({ name: user.name || "" });
     }
   }, [user]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUpdatingProfile(true);
+
+    const { error } = await authClient.updateUser({
+      name: profileData.name,
+    });
+
+    setIsUpdatingProfile(false);
+
+    if (error) {
+      toast.error("Failed to update profile", { description: error.message });
+      return;
+    }
+
+    toast.success("Success", { description: "Profile updated successfully" });
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (
-      formData.newPassword &&
-      formData.newPassword !== formData.confirmPassword
-    ) {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("Error", { description: "New passwords don't match" });
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
       toast.error("Error", {
-        description: "New passwords don't match",
+        description: "Password must be at least 8 characters",
       });
       return;
     }
 
-    // In a real app, call authClient.updateUser() here
-    // authClient.updateUser({ name: formData.name })
+    setIsChangingPassword(true);
 
-    toast.success("Success", {
-      description: "Profile updated successfully",
+    const { error } = await authClient.changePassword({
+      newPassword: passwordData.newPassword,
+      currentPassword: passwordData.currentPassword,
+      revokeOtherSessions: true,
+    });
+
+    setIsChangingPassword(false);
+
+    if (error) {
+      // Very common error for users who signed up exclusively through Google
+      if (error.status === 400 || error.message?.includes("password")) {
+        toast.error("Error changing password", {
+          description:
+            error.message || "You may have signed up using a social account.",
+        });
+      } else {
+        toast.error("Error", { description: error.message });
+      }
+      return;
+    }
+
+    toast.success("Success", { description: "Password updated successfully" });
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
     });
   };
 
-  const handleAvatarUpload = () => {
-    // Simulate avatar upload
-    toast.info("Avatar Upload", {
-      description: "Avatar upload feature would be implemented here",
-    });
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    const { error } = await authClient.deleteUser({});
+
+    if (error) {
+      toast.error("Failed to delete account", { description: error.message });
+      setIsDeleting(false);
+      return;
+    }
+
+    toast.success("Account deleted");
+    setIsDeleteDialogOpen(false);
+    router.push("/login");
   };
 
-  const initials = formData.name
-    ? formData.name
+  const handleAvatarUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Invalid file type", {
+        description: "Please upload an image.",
+      });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = async () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 256;
+          const MAX_HEIGHT = 256;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const base64Avatar = canvas.toDataURL("image/webp", 0.8);
+
+            const { error } = await authClient.updateUser({
+              image: base64Avatar,
+            });
+            setIsUploadingAvatar(false);
+
+            if (error) {
+              toast.error("Upload failed", { description: error.message });
+            } else {
+              toast.success("Avatar updated");
+            }
+          }
+        };
+      };
+    } catch (err) {
+      setIsUploadingAvatar(false);
+      toast.error("Error processing image");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    setIsRemovingAvatar(true);
+    const { error } = await authClient.updateUser({ image: "" });
+    setIsRemovingAvatar(false);
+
+    if (error) {
+      toast.error("Failed to remove avatar", { description: error.message });
+    } else {
+      toast.success("Avatar removed");
+    }
+  };
+
+  const initials = profileData.name
+    ? profileData.name
         .split(" ")
         .map((n) => n[0])
         .join("")
@@ -88,7 +250,7 @@ export function ProfileContent() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-12">
-        <div className="md:col-span-8 space-y-6">
+        <div className="md:col-span-12 space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -100,9 +262,7 @@ export function ProfileContent() {
                   <User className="h-5 w-5 text-primary" />
                   <CardTitle>Personal Information</CardTitle>
                 </div>
-                <CardDescription>
-                  Update your personal details and contact information.
-                </CardDescription>
+                <CardDescription>Update your personal details.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Avatar Section */}
@@ -118,19 +278,38 @@ export function ProfileContent() {
                   </Avatar>
                   <div className="space-y-3 text-center sm:text-left">
                     <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                      />
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={handleAvatarUpload}
+                        onClick={handleAvatarUploadClick}
+                        disabled={isUploadingAvatar || isRemovingAvatar}
                       >
-                        <Camera className="mr-2 h-4 w-4" />
-                        Change Avatar
+                        {isUploadingAvatar ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Camera className="mr-2 h-4 w-4" />
+                        )}
+                        {isUploadingAvatar ? "Uploading..." : "Change Avatar"}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={handleRemoveAvatar}
+                        disabled={
+                          isRemovingAvatar || isUploadingAvatar || !user?.image
+                        }
                       >
+                        {isRemovingAvatar ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
                         Remove
                       </Button>
                     </div>
@@ -140,15 +319,15 @@ export function ProfileContent() {
                   </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleUpdateProfile} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name</Label>
                       <Input
                         id="name"
-                        value={formData.name}
+                        value={profileData.name}
                         onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
+                          setProfileData({ name: e.target.value })
                         }
                         required
                       />
@@ -159,19 +338,29 @@ export function ProfileContent() {
                       <Input
                         id="email"
                         type="email"
-                        value={formData.email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
-                        }
-                        required
+                        value={user?.email || ""}
+                        disabled
+                        className="bg-muted"
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Emails cannot be changed directly at this time.
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex justify-end pt-4 border-t border-border/50">
-                    <Button type="submit">
-                      <Save className="mr-2 h-4 w-4" />
-                      Save Personal Details
+                    <Button type="submit" disabled={isUpdatingProfile}>
+                      {isUpdatingProfile ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save Personal Details
+                        </>
+                      )}
                     </Button>
                   </div>
                 </form>
@@ -195,20 +384,21 @@ export function ProfileContent() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form className="space-y-6">
+                <form onSubmit={handleChangePassword} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="currentPassword">Current Password</Label>
                     <Input
                       id="currentPassword"
                       type="password"
                       placeholder="••••••••"
-                      value={formData.currentPassword}
+                      value={passwordData.currentPassword}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
+                        setPasswordData({
+                          ...passwordData,
                           currentPassword: e.target.value,
                         })
                       }
+                      required
                     />
                   </div>
 
@@ -219,13 +409,14 @@ export function ProfileContent() {
                         id="newPassword"
                         type="password"
                         placeholder="••••••••"
-                        value={formData.newPassword}
+                        value={passwordData.newPassword}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
+                          setPasswordData({
+                            ...passwordData,
                             newPassword: e.target.value,
                           })
                         }
+                        required
                       />
                     </div>
 
@@ -237,51 +428,102 @@ export function ProfileContent() {
                         id="confirmPassword"
                         type="password"
                         placeholder="••••••••"
-                        value={formData.confirmPassword}
+                        value={passwordData.confirmPassword}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
+                          setPasswordData({
+                            ...passwordData,
                             confirmPassword: e.target.value,
                           })
                         }
+                        required
                       />
                     </div>
                   </div>
 
                   <div className="flex justify-end pt-4 border-t border-border/50">
-                    <Button type="button" onClick={handleSubmit}>
-                      <Save className="mr-2 h-4 w-4" />
-                      Update Password
+                    <Button type="submit" disabled={isChangingPassword}>
+                      {isChangingPassword ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Update Password
+                        </>
+                      )}
                     </Button>
                   </div>
                 </form>
               </CardContent>
             </Card>
           </motion.div>
-        </div>
 
-        <div className="md:col-span-4 space-y-6">
-          <Card className="bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-base">Profile Strength</CardTitle>
-              <CardDescription>
-                Complete your profile to build trust with clients.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-xs font-medium">
-                  <span>80% Completed</span>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <Card className="border-destructive/20 bg-destructive/5">
+              <CardHeader>
+                <div className="flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="h-5 w-5" />
+                  <CardTitle>Danger Zone</CardTitle>
                 </div>
-                <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-primary w-[80%] rounded-full" />
-                </div>
-                <p className="text-[10px] text-muted-foreground pt-1">
-                  Almost there! Add a profile bio to reach 100%.
+                <CardDescription>
+                  Permanently delete your account and all associated data.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-foreground mb-4">
+                  Once you delete your account, there is no going back. Please
+                  be certain.
                 </p>
-              </div>
-            </CardContent>
-          </Card>
+                <Dialog
+                  open={isDeleteDialogOpen}
+                  onOpenChange={setIsDeleteDialogOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="destructive">Delete Account</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Are you absolutely sure?</DialogTitle>
+                      <DialogDescription>
+                        This action cannot be undone. This will permanently
+                        delete your account and remove your active projects and
+                        data from our servers.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-4 gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsDeleteDialogOpen(false)}
+                        disabled={isDeleting}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={handleDeleteAccount}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Deleting...
+                          </>
+                        ) : (
+                          "Yes, delete account"
+                        )}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
     </div>
