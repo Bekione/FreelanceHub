@@ -166,55 +166,34 @@ export function ProfileContent() {
     setIsUploadingAvatar(true);
 
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = async () => {
-          const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 256;
-          const MAX_HEIGHT = 256;
-          let width = img.width;
-          let height = img.height;
+      const formData = new FormData();
+      formData.append("file", file);
 
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
+      const res = await fetch("/api/upload/avatar", {
+        method: "POST",
+        body: formData,
+      });
 
-          canvas.width = width;
-          canvas.height = height;
+      if (!res.ok) {
+        throw new Error("Failed to upload image to Cloudinary.");
+      }
 
-          const ctx = canvas.getContext("2d");
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const base64Avatar = canvas.toDataURL("image/webp", 0.8);
+      const { url } = await res.json();
 
-            const { error } = await authClient.updateUser({
-              image: base64Avatar,
-            });
-            setIsUploadingAvatar(false);
+      const { error } = await authClient.updateUser({ image: url });
 
-            if (error) {
-              toast.error("Upload failed", { description: error.message });
-            } else {
-              toast.success("Avatar updated");
-            }
-          }
-        };
-      };
+      if (error) {
+        toast.error("Profile update failed", { description: error.message });
+      } else {
+        toast.success("Avatar updated successfully");
+      }
     } catch (err) {
-      setIsUploadingAvatar(false);
-      toast.error("Error processing image");
+      toast.error("Upload error", {
+        description:
+          err instanceof Error ? err.message : "Error processing image",
+      });
     } finally {
+      setIsUploadingAvatar(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
