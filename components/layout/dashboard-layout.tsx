@@ -3,15 +3,11 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { AppHeader } from "./header";
-import { useDataStore } from "@/store/data-store";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const fetchData = useDataStore((state) => state.fetchData);
 
   useEffect(() => {
-    fetchData();
-
     const handleResize = () => {
       setSidebarOpen(window.innerWidth >= 1024);
     };
@@ -19,7 +15,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [fetchData]);
+  }, []);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
