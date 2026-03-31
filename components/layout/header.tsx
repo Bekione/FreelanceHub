@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Menu, Moon, Sun, Monitor, LogOut } from "lucide-react";
-import { useAuthStore } from "@/store/auth-store";
+import { useSession, signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -29,7 +29,10 @@ interface HeaderProps {
 }
 
 export function AppHeader({ onMenuClick }: HeaderProps) {
-  const { user, logout } = useAuthStore();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const user = session?.user;
+
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   // Prevent hydration mismatch — theme is undefined on the server
@@ -42,6 +45,16 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
     if (theme === "light") setTheme("dark");
     else if (theme === "dark") setTheme("system");
     else setTheme("light");
+  };
+
+  const handleLogout = async () => {
+    await signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/login"); // Immediately enforce redirect
+        },
+      },
+    });
   };
 
   const initials = user?.name
@@ -101,7 +114,13 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs font-medium">
+                  {user?.image ? (
+                    <AvatarImage
+                      src={user.image}
+                      alt={user.name || "User Avatar"}
+                    />
+                  ) : null}
+                  <AvatarFallback className="text-xs font-medium bg-sidebar-primary text-sidebar-primary-foreground">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -109,13 +128,19 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end">
               <div className="px-2 py-2 space-y-0.5">
-                <p className="text-sm font-medium leading-none">{user?.name}</p>
+                <p className="text-sm font-medium leading-none">
+                  {user?.name || "Loading..."}
+                </p>
                 <p className="text-xs text-muted-foreground leading-none pt-1">
-                  {user?.email}
+                  {user?.email || "..."}
                 </p>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout} variant="destructive">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                variant="destructive"
+                className="cursor-pointer"
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

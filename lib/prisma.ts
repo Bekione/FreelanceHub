@@ -1,14 +1,13 @@
 import { PrismaClient } from "@/lib/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-// Prisma 7 + Prisma Postgres: pass datasourceUrl explicitly.
-// This makes the client work with Prisma's hosted service (db.prisma.io / Accelerate).
+// PrismaPg reads the connection string from DATABASE_URL.
 function createPrismaClient() {
-  return new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL,
-} as any);
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+  return new PrismaClient({ adapter });
 }
 
-// Singleton — prevents multiple instances during Next.js hot-reload in dev
+// Singleton — prevents multiple instances during Next.js hot-reload in dev.
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

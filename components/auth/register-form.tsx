@@ -9,8 +9,26 @@ import { signUp, signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { AppLogo } from "@/components/app-logo";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+// Zod strict schema
+const registerSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 // Inline Google icon SVG
 function GoogleIcon() {
@@ -38,35 +56,34 @@ function GoogleIcon() {
 
 export function RegisterForm() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: "", email: "", password: "" },
+  });
+
+  const onSubmit = async (data: RegisterFormValues) => {
     setError("");
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-    setIsLoading(true);
     try {
       const { error: authError } = await signUp.email({
-        name,
-        email,
-        password,
+        name: data.name,
+        email: data.email,
+        password: data.password,
       });
       if (authError) {
         setError(authError.message ?? "Registration failed. Please try again.");
       } else {
         router.push("/dashboard");
       }
-    } finally {
-      setIsLoading(false);
+    } catch {
+      setError("An unexpected error occurred.");
     }
   };
 
@@ -82,6 +99,9 @@ export function RegisterForm() {
       setIsGoogleLoading(false);
     }
   };
+
+  // We consider overall loading if form is submittin or google is loading
+  const isLoading = isSubmitting || isGoogleLoading;
 
   return (
     <motion.div
@@ -108,7 +128,7 @@ export function RegisterForm() {
             variant="outline"
             className="w-full"
             onClick={handleGoogle}
-            disabled={isGoogleLoading || isLoading}
+            disabled={isLoading}
           >
             {isGoogleLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -127,31 +147,47 @@ export function RegisterForm() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full name</Label>
               <Input
                 id="name"
                 type="text"
                 placeholder="Alex Johnson"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
+                {...register("name")}
                 autoComplete="name"
+                className={
+                  errors.name
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
               />
+              {errors.name && (
+                <p className="text-xs text-destructive">
+                  {errors.name.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                type="email"
+                type="text"
                 placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                {...register("email")}
                 autoComplete="email"
+                className={
+                  errors.email
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
               />
+              {errors.email && (
+                <p className="text-xs text-destructive">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -161,11 +197,9 @@ export function RegisterForm() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  {...register("password")}
                   autoComplete="new-password"
-                  className="pr-10"
+                  className={`pr-10 ${errors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
                 <button
                   type="button"
@@ -180,19 +214,21 @@ export function RegisterForm() {
                   )}
                 </button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Minimum 8 characters
-              </p>
+              {errors.password ? (
+                <p className="text-xs text-destructive">
+                  {errors.password.message}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Minimum 8 characters
+                </p>
+              )}
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading || isGoogleLoading}
-            >
-              {isLoading ? (
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Creating account…

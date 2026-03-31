@@ -17,6 +17,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AppLogo } from "@/components/app-logo";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+// Zod strict schema
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 // Inline Google icon SVG
 function GoogleIcon() {
@@ -44,26 +55,33 @@ function GoogleIcon() {
 
 export function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
+
+  const onSubmit = async (data: LoginFormValues) => {
     setError("");
-    setIsLoading(true);
     try {
-      const { error: authError } = await signIn.email({ email, password });
+      const { error: authError } = await signIn.email({
+        email: data.email,
+        password: data.password,
+      });
       if (authError) {
         setError(authError.message ?? "Invalid email or password.");
       } else {
         router.push("/dashboard");
       }
-    } finally {
-      setIsLoading(false);
+    } catch {
+      setError("An unexpected error occurred.");
     }
   };
 
@@ -80,6 +98,8 @@ export function LoginForm() {
     }
   };
 
+  const isLoading = isSubmitting || isGoogleLoading;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -89,7 +109,6 @@ export function LoginForm() {
     >
       <Card className="border-border/60 shadow-xl">
         <CardHeader className="space-y-1 pb-6">
-          {/* Logo */}
           <AppLogo className="mb-2" />
           <CardTitle className="text-2xl font-heading">Welcome back</CardTitle>
           <CardDescription>
@@ -98,13 +117,12 @@ export function LoginForm() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Google OAuth */}
           <Button
             type="button"
             variant="outline"
             className="w-full"
             onClick={handleGoogle}
-            disabled={isGoogleLoading || isLoading}
+            disabled={isLoading}
           >
             {isGoogleLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -123,18 +141,26 @@ export function LoginForm() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                type="email"
+                type="text"
                 placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                {...register("email")}
                 autoComplete="email"
+                className={
+                  errors.email
+                    ? "border-destructive focus-visible:ring-destructive"
+                    : ""
+                }
               />
+              {errors.email && (
+                <p className="text-xs text-destructive">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -144,11 +170,9 @@ export function LoginForm() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  {...register("password")}
                   autoComplete="current-password"
-                  className="pr-10"
+                  className={`pr-10 ${errors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 />
                 <button
                   type="button"
@@ -163,16 +187,17 @@ export function LoginForm() {
                   )}
                 </button>
               </div>
+              {errors.password && (
+                <p className="text-xs text-destructive">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading || isGoogleLoading}
-            >
-              {isLoading ? (
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Signing in…

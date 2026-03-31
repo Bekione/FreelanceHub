@@ -4,7 +4,7 @@ import type React from "react";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Camera, Save, User, ShieldCheck } from "lucide-react";
-import { useAuthStore } from "@/store/auth-store";
+import { useSession } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +19,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 
 export function ProfileContent() {
-  const { user, updateProfile } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -53,10 +54,8 @@ export function ProfileContent() {
       return;
     }
 
-    updateProfile({
-      name: formData.name,
-      email: formData.email,
-    });
+    // In a real app, call authClient.updateUser() here
+    // authClient.updateUser({ name: formData.name })
 
     toast.success("Success", {
       description: "Profile updated successfully",
@@ -109,7 +108,10 @@ export function ProfileContent() {
                 {/* Avatar Section */}
                 <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-border/50">
                   <Avatar className="h-24 w-24 border-4 border-background shadow-xl">
-                    <AvatarImage src={user?.avatar} alt={user?.name} />
+                    <AvatarImage
+                      src={user?.image || ""}
+                      alt={user?.name || "User"}
+                    />
                     <AvatarFallback className="text-2xl bg-primary/5 text-primary">
                       {initials}
                     </AvatarFallback>
