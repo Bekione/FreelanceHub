@@ -52,13 +52,40 @@ export interface Invoice {
   createdAt: string;
 }
 
+export interface PaginationMetadata {
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+}
+
+export interface DashboardMetrics {
+  totalRevenue: number;
+  activeProjects: number;
+  totalProjects: number;
+  pendingInvoicesCount: number;
+  pendingInvoicesAmount: number;
+  totalClients: number;
+  recentActivity: Array<{
+    type: "invoice" | "project";
+    label: string;
+    sub: string;
+    status: string;
+    date: string;
+  }>;
+}
+
 // ─── Store Definitions ────────────────────────────────────────────────────────
 
 interface ClientsState {
   clients: Client[];
+  clientsMeta: PaginationMetadata | null;
   isLoadingClients: boolean;
   clientsError: string | null;
-  fetchClients: () => Promise<void>;
+  fetchClients: (params?: {
+    page?: number;
+    limit?: number;
+    q?: string;
+  }) => Promise<void>;
   createClient: (data: Partial<Client>) => Promise<{ error?: string }>;
   updateClient: (
     id: string,
@@ -69,9 +96,15 @@ interface ClientsState {
 
 interface ProjectsState {
   projects: Project[];
+  projectsMeta: PaginationMetadata | null;
   isLoadingProjects: boolean;
   projectsError: string | null;
-  fetchProjects: () => Promise<void>;
+  fetchProjects: (params?: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    status?: string;
+  }) => Promise<void>;
   createProject: (
     data: Partial<Project> & { clientId?: string },
   ) => Promise<{ error?: string }>;
@@ -84,9 +117,15 @@ interface ProjectsState {
 
 interface InvoicesState {
   invoices: Invoice[];
+  invoicesMeta: PaginationMetadata | null;
   isLoadingInvoices: boolean;
   invoicesError: string | null;
-  fetchInvoices: () => Promise<void>;
+  fetchInvoices: (params?: {
+    page?: number;
+    limit?: number;
+    q?: string;
+    status?: string;
+  }) => Promise<void>;
   createInvoice: (
     data: Partial<Invoice> & { items?: Partial<InvoiceItem>[] },
   ) => Promise<{ error?: string }>;
@@ -98,23 +137,35 @@ interface InvoicesState {
   markInvoicePaid: (id: string) => Promise<{ error?: string }>;
 }
 
-type DataState = ClientsState & ProjectsState & InvoicesState;
+interface MetricsState {
+  dashboardMetrics: DashboardMetrics | null;
+  isLoadingMetrics: boolean;
+  fetchMetrics: () => Promise<void>;
+}
+
+type DataState = ClientsState & ProjectsState & InvoicesState & MetricsState;
 
 // ─── Store Implementation ─────────────────────────────────────────────────────
 
 export const useDataStore = create<DataState>((set, get) => ({
   // ── Clients ──
   clients: [],
+  clientsMeta: null,
   isLoadingClients: false,
   clientsError: null,
 
-  fetchClients: async () => {
+  fetchClients: async (params = {}) => {
     set({ isLoadingClients: true, clientsError: null });
     try {
-      const res = await fetch("/api/clients");
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.set("page", params.page.toString());
+      if (params.limit) searchParams.set("limit", params.limit.toString());
+      if (params.q) searchParams.set("q", params.q);
+
+      const res = await fetch(`/api/clients?${searchParams.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch clients");
-      const data = await res.json();
-      set({ clients: data });
+      const { data, metadata } = await res.json();
+      set({ clients: data, clientsMeta: metadata });
     } catch (e) {
       set({ clientsError: e instanceof Error ? e.message : "Unknown error" });
     } finally {
@@ -156,16 +207,24 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   // ── Projects ──
   projects: [],
+  projectsMeta: null,
   isLoadingProjects: false,
   projectsError: null,
 
-  fetchProjects: async () => {
+  fetchProjects: async (params = {}) => {
     set({ isLoadingProjects: true, projectsError: null });
     try {
-      const res = await fetch("/api/projects");
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.set("page", params.page.toString());
+      if (params.limit) searchParams.set("limit", params.limit.toString());
+      if (params.q) searchParams.set("q", params.q);
+      if (params.status && params.status !== "all")
+        searchParams.set("status", params.status);
+
+      const res = await fetch(`/api/projects?${searchParams.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch projects");
-      const data = await res.json();
-      set({ projects: data });
+      const { data, metadata } = await res.json();
+      set({ projects: data, projectsMeta: metadata });
     } catch (e) {
       set({ projectsError: e instanceof Error ? e.message : "Unknown error" });
     } finally {
@@ -207,16 +266,24 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   // ── Invoices ──
   invoices: [],
+  invoicesMeta: null,
   isLoadingInvoices: false,
   invoicesError: null,
 
-  fetchInvoices: async () => {
+  fetchInvoices: async (params = {}) => {
     set({ isLoadingInvoices: true, invoicesError: null });
     try {
-      const res = await fetch("/api/invoices");
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.set("page", params.page.toString());
+      if (params.limit) searchParams.set("limit", params.limit.toString());
+      if (params.q) searchParams.set("q", params.q);
+      if (params.status && params.status !== "all")
+        searchParams.set("status", params.status);
+
+      const res = await fetch(`/api/invoices?${searchParams.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch invoices");
-      const data = await res.json();
-      set({ invoices: data });
+      const { data, metadata } = await res.json();
+      set({ invoices: data, invoicesMeta: metadata });
     } catch (e) {
       set({ invoicesError: e instanceof Error ? e.message : "Unknown error" });
     } finally {
@@ -260,5 +327,23 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   markInvoicePaid: async (id) => {
     return get().updateInvoice(id, { status: "PAID" });
+  },
+
+  // ── Metrics ──
+  dashboardMetrics: null,
+  isLoadingMetrics: false,
+
+  fetchMetrics: async () => {
+    set({ isLoadingMetrics: true });
+    try {
+      const res = await fetch("/api/metrics");
+      if (!res.ok) throw new Error("Failed to fetch metrics");
+      const data = await res.json();
+      set({ dashboardMetrics: data });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      set({ isLoadingMetrics: false });
+    }
   },
 }));

@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
@@ -12,9 +11,18 @@ import {
   Pencil,
   Trash2,
   Loader2,
+  Search,
+  Filter,
 } from "lucide-react";
 import { useDataStore, type Project } from "@/store/data-store";
 import { Button } from "@/components/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   Card,
   CardContent,
@@ -90,6 +98,7 @@ const emptyForm = {
 export function ProjectsContent() {
   const {
     projects,
+    projectsMeta,
     clients,
     isLoadingProjects,
     fetchProjects,
@@ -98,6 +107,10 @@ export function ProjectsContent() {
     updateProject,
     deleteProject,
   } = useDataStore();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
@@ -116,9 +129,25 @@ export function ProjectsContent() {
   });
 
   useEffect(() => {
-    fetchProjects();
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    fetchProjects({
+      page: currentPage,
+      limit: 9,
+      q: debouncedSearch,
+      status: statusFilter,
+    });
     fetchClients();
-  }, [fetchProjects, fetchClients]);
+  }, [currentPage, debouncedSearch, statusFilter, fetchProjects, fetchClients]);
 
   const openCreate = () => {
     setEditingProject(null);
@@ -192,6 +221,33 @@ export function ProjectsContent() {
         </Button>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search projects..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <Filter className="mr-2 h-4 w-4" />
+            <SelectValue placeholder="Filter status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {STATUS_OPTIONS.map((s) => (
+              <SelectItem key={s.value} value={s.value}>
+                {s.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {isLoadingProjects ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -218,8 +274,8 @@ export function ProjectsContent() {
                 <Card className="h-full group hover:shadow-md transition-shadow flex flex-col">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base leading-tight truncate">
+                      <div className="flex-1 min-w-0 pr-2">
+                        <CardTitle className="text-base leading-tight line-clamp-2 break-all">
                           {project.title}
                         </CardTitle>
                         <CardDescription className="pt-0.5">
@@ -255,7 +311,7 @@ export function ProjectsContent() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4 pt-0 flex-1 flex flex-col justify-between">
-                    <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]">
+                    <p className="text-sm text-muted-foreground line-clamp-2 min-h-10">
                       {project.description || "No description."}
                     </p>
                     <div className="space-y-2">
@@ -304,6 +360,45 @@ export function ProjectsContent() {
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {projectsMeta && projectsMeta.totalPages > 1 && (
+        <div className="py-4 flex justify-center border-t border-border/50">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className={
+                    currentPage === 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <span className="text-sm text-muted-foreground px-4 py-2 font-medium">
+                  Page {projectsMeta.currentPage} of {projectsMeta.totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    setCurrentPage((p) =>
+                      Math.min(projectsMeta.totalPages, p + 1),
+                    )
+                  }
+                  className={
+                    currentPage === projectsMeta.totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 

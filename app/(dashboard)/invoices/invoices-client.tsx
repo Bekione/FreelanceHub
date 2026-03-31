@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
@@ -44,6 +43,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -80,19 +86,24 @@ const emptyForm = {
 export function InvoicesContent() {
   const {
     invoices,
+    invoicesMeta,
+    dashboardMetrics,
     clients,
     projects,
     isLoadingInvoices,
     fetchInvoices,
     fetchClients,
     fetchProjects,
+    fetchMetrics,
     createInvoice,
     updateInvoice,
     deleteInvoice,
     markInvoicePaid,
   } = useDataStore();
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
@@ -112,10 +123,35 @@ export function InvoicesContent() {
   });
 
   useEffect(() => {
-    fetchInvoices();
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    fetchInvoices({
+      page: currentPage,
+      limit: 10,
+      q: debouncedSearch,
+      status: statusFilter,
+    });
     fetchClients();
     fetchProjects();
-  }, [fetchInvoices, fetchClients, fetchProjects]);
+    fetchMetrics();
+  }, [
+    currentPage,
+    debouncedSearch,
+    statusFilter,
+    fetchInvoices,
+    fetchClients,
+    fetchProjects,
+    fetchMetrics,
+  ]);
 
   const openCreate = () => {
     setEditingInvoice(null);
@@ -184,22 +220,11 @@ export function InvoicesContent() {
     toast.success("Invoice marked as paid");
   };
 
-  const filtered = invoices.filter((inv) => {
-    const term = searchTerm.toLowerCase();
-    const matchesSearch =
-      inv.invoiceNumber.toLowerCase().includes(term) ||
-      (inv.client?.name ?? "").toLowerCase().includes(term);
-    const matchesStatus = statusFilter === "all" || inv.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  const totalAmount = filtered.reduce((s, i) => s + i.amount, 0);
-  const paidAmount = filtered
-    .filter((i) => i.status === "PAID")
-    .reduce((s, i) => s + i.amount, 0);
-  const pendingAmount = filtered
-    .filter((i) => i.status === "PENDING" || i.status === "OVERDUE")
-    .reduce((s, i) => s + i.amount, 0);
+  const totalAmount =
+    (dashboardMetrics?.totalRevenue || 0) +
+    (dashboardMetrics?.pendingInvoicesAmount || 0);
+  const paidAmount = dashboardMetrics?.totalRevenue || 0;
+  const pendingAmount = dashboardMetrics?.pendingInvoicesAmount || 0;
 
   return (
     <div className="space-y-6">
@@ -310,8 +335,8 @@ export function InvoicesContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.length > 0 ? (
-                    filtered.map((invoice) => (
+                  {invoices.length > 0 ? (
+                    invoices.map((invoice) => (
                       <TableRow
                         key={invoice.id}
                         className="group transition-colors hover:bg-muted/30"
@@ -392,6 +417,45 @@ export function InvoicesContent() {
               </Table>
             )}
           </div>
+          {/* Pagination Controls */}
+          {invoicesMeta && invoicesMeta.totalPages > 1 && (
+            <div className="py-4 border-t border-border/50">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <span className="text-sm text-muted-foreground px-4 py-2 font-medium">
+                      Page {invoicesMeta.currentPage} of{" "}
+                      {invoicesMeta.totalPages}
+                    </span>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() =>
+                        setCurrentPage((p) =>
+                          Math.min(invoicesMeta.totalPages, p + 1),
+                        )
+                      }
+                      className={
+                        currentPage === invoicesMeta.totalPages
+                          ? "pointer-events-none opacity-50"
+                          : "cursor-pointer"
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
         </Card>
       </motion.div>
 

@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
@@ -15,9 +14,17 @@ import {
   Loader2,
   FileText,
   FolderOpen,
+  Search,
 } from "lucide-react";
 import { useDataStore, type Client } from "@/store/data-store";
 import { Button } from "@/components/ui/button";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   Card,
   CardContent,
@@ -45,12 +52,16 @@ const emptyForm = { name: "", email: "", company: "", phone: "", notes: "" };
 export function ClientsContent() {
   const {
     clients,
+    clientsMeta,
     isLoadingClients,
     fetchClients,
     createClient,
     updateClient,
     deleteClient,
   } = useDataStore();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -67,8 +78,23 @@ export function ClientsContent() {
   });
 
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    fetchClients({
+      page: currentPage,
+      limit: 9,
+      q: debouncedSearch,
+    });
+  }, [fetchClients, currentPage, debouncedSearch]);
 
   const openCreate = () => {
     setEditingClient(null);
@@ -129,6 +155,19 @@ export function ClientsContent() {
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" /> Add Client
         </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-4 items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search clients by name, company, or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
       </div>
 
       {isLoadingClients ? (
@@ -245,6 +284,45 @@ export function ClientsContent() {
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {clientsMeta && clientsMeta.totalPages > 1 && (
+        <div className="py-4 flex justify-center border-t border-border/50">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className={
+                    currentPage === 1
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <span className="text-sm text-muted-foreground px-4 py-2 font-medium">
+                  Page {clientsMeta.currentPage} of {clientsMeta.totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    setCurrentPage((p) =>
+                      Math.min(clientsMeta.totalPages, p + 1),
+                    )
+                  }
+                  className={
+                    currentPage === clientsMeta.totalPages
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
 

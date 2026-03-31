@@ -34,64 +34,26 @@ function statusVariant(status: string) {
 }
 
 export function DashboardContent() {
-  const {
-    projects,
-    invoices,
-    clients,
-    isLoadingProjects,
-    isLoadingInvoices,
-    isLoadingClients,
-    fetchProjects,
-    fetchInvoices,
-    fetchClients,
-  } = useDataStore();
+  const { dashboardMetrics, isLoadingMetrics, fetchMetrics } = useDataStore();
 
   useEffect(() => {
-    fetchProjects();
-    fetchInvoices();
-    fetchClients();
-  }, [fetchProjects, fetchInvoices, fetchClients]);
+    fetchMetrics();
+  }, [fetchMetrics]);
 
-  const isLoading = isLoadingProjects || isLoadingInvoices || isLoadingClients;
+  const isLoading = isLoadingMetrics || !dashboardMetrics;
 
-  const stats = {
-    totalRevenue: invoices
-      .filter((i) => i.status === "PAID")
-      .reduce((s, i) => s + i.amount, 0),
-    activeProjects: projects.filter((p) => p.status === "ACTIVE").length,
-    pendingInvoicesCount: invoices.filter(
-      (i) => i.status === "PENDING" || i.status === "OVERDUE",
-    ).length,
-    pendingInvoicesAmount: invoices
-      .filter((i) => i.status === "PENDING" || i.status === "OVERDUE")
-      .reduce((s, i) => s + i.amount, 0),
-    totalClients: clients.length,
+  const stats = dashboardMetrics || {
+    totalRevenue: 0,
+    activeProjects: 0,
+    totalProjects: 0,
+    pendingInvoicesCount: 0,
+    pendingInvoicesAmount: 0,
+    totalClients: 0,
   };
 
-  const recentActivity = [
-    ...invoices
-      .slice(0, 3)
-      .map((i) => ({
-        type: "invoice" as const,
-        label: i.invoiceNumber,
-        sub: i.client?.name ?? "—",
-        status: i.status,
-        date: i.createdAt,
-      })),
-    ...projects
-      .slice(0, 2)
-      .map((p) => ({
-        type: "project" as const,
-        label: p.title,
-        sub: p.client?.name ?? "No client",
-        status: p.status,
-        date: p.createdAt,
-      })),
-  ]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+  const recentActivity = dashboardMetrics?.recentActivity || [];
 
-  if (isLoading && projects.length === 0 && invoices.length === 0) {
+  if (isLoading) {
     return <DashboardSkeleton />;
   }
 
@@ -117,7 +79,7 @@ export function DashboardContent() {
           {
             label: "Active Projects",
             value: stats.activeProjects,
-            sub: `${projects.length} total`,
+            sub: `${stats.totalProjects} total`,
             icon: FolderOpen,
             iconColor: "text-blue-600 dark:text-blue-400",
           },
