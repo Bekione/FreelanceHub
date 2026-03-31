@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Better-Auth stores the session token in a cookie named "better-auth.session_token"
-// We read it directly here to keep middleware on the Edge runtime (no heavy imports)
 const SESSION_COOKIE = "better-auth.session_token";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
