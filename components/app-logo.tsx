@@ -4,12 +4,14 @@ interface AppLogoProps {
   className?: string;
   iconClassName?: string;
   textClassName?: string;
+  type?: "icon" | "text" | "both";
 }
 
 export function AppLogo({
   className,
   iconClassName,
   textClassName,
+  type = "both",
 }: AppLogoProps) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -35,14 +37,18 @@ export function AppLogo({
           />
         </svg>
       </div>
-      <span
-        className={cn(
-          "font-semibold text-lg italic font-heading text-sidebar-foreground",
-          textClassName,
-        )}
-      >
-        FreelanceHub
-      </span>
+      {
+        type !== "icon" && (
+          <span
+            className={cn(
+              "font-semibold text-lg italic font-heading text-sidebar-foreground",
+              textClassName,
+            )}
+          >
+            FreelanceHub
+          </span>
+        )
+      }
     </div>
   );
 }
