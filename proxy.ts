@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Better-Auth stores the session token in a cookie named "better-auth.session_token"
-const SESSION_COOKIE = "better-auth.session_token";
+// In production (HTTPS), Better-Auth prefixes the cookie with "__Secure-"
+const SESSION_COOKIE =
+  process.env.NODE_ENV === "production"
+    ? "__Secure-better-auth.session_token"
+    : "better-auth.session_token";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
