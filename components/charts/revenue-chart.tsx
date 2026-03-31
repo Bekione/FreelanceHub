@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -14,6 +14,7 @@ import {
   Filler,
 } from "chart.js";
 import { useTheme } from "@/components/theme-provider";
+import { useDataStore } from "@/store/data-store";
 
 ChartJS.register(
   CategoryScale,
@@ -26,24 +27,17 @@ ChartJS.register(
   Filler,
 );
 
-// Reads a CSS custom property and converts HSL (any format) to a hex string.
-// Always returns a valid hex color — never an empty string.
 function getCSSColor(variable: string, fallback: string): string {
   if (typeof window === "undefined") return fallback;
   const raw = getComputedStyle(document.documentElement)
     .getPropertyValue(variable)
     .trim();
-
   if (!raw) return fallback;
-
-  // Support "H S% L%", "H,S%,L%", and decimal values like "262.1 83.3% 57.8%"
   const parts = raw.split(/[\s,]+/).map((v) => parseFloat(v.replace("%", "")));
   if (parts.length < 3 || parts.some(isNaN)) return fallback;
-
   const h = parts[0] / 360;
   const s = parts[1] / 100;
   const l = parts[2] / 100;
-
   const hue2rgb = (p: number, q: number, t: number) => {
     if (t < 0) t += 1;
     if (t > 1) t -= 1;
@@ -52,7 +46,6 @@ function getCSSColor(variable: string, fallback: string): string {
     if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
     return p;
   };
-
   let r, g, b;
   if (s === 0) {
     r = g = b = l;
@@ -63,7 +56,6 @@ function getCSSColor(variable: string, fallback: string): string {
     g = hue2rgb(p, q, h);
     b = hue2rgb(p, q, h - 1 / 3);
   }
-
   const toHex = (c: number) =>
     Math.round(c * 255)
       .toString(16)
@@ -88,11 +80,41 @@ const FALLBACKS = {
   },
 };
 
+// Build an array of the last N month labels + Date ranges
+function getLast6Months() {
+  const months: { label: string; start: Date; end: Date }[] = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const start = new Date(d.getFullYear(), d.getMonth(), 1);
+    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+    const label = d.toLocaleString("default", { month: "short" });
+    months.push({ label, start, end });
+  }
+  return months;
+}
+
 export default function RevenueChart() {
   const { theme } = useTheme();
   const chartRef = useRef<ChartJS<"line"> | null>(null);
+  const invoices = useDataStore((s) => s.invoices);
 
-  // Reads current CSS variables — always returns valid hex values
+  // Compute monthly revenue from PAID invoices grouped by issue date
+  const { labels, dataPoints } = useMemo(() => {
+    const months = getLast6Months();
+    const labels = months.map((m) => m.label);
+    const dataPoints = months.map(({ start, end }) =>
+      invoices
+        .filter((inv) => {
+          if (inv.status !== "PAID") return false;
+          const d = new Date(inv.issueDate);
+          return d >= start && d <= end;
+        })
+        .reduce((sum, inv) => sum + inv.amount, 0),
+    );
+    return { labels, dataPoints };
+  }, [invoices]);
+
   const getColors = () => {
     const isDark = document.documentElement.classList.contains("dark");
     const fb = isDark ? FALLBACKS.dark : FALLBACKS.light;
@@ -105,22 +127,17 @@ export default function RevenueChart() {
     };
   };
 
-  // On theme change, update the chart imperatively without a re-render cycle
   useEffect(() => {
     const update = () => {
       const chart = chartRef.current;
       if (!chart) return;
       const c = getColors();
-
-      // Update dataset colors
       const dataset = chart.data.datasets[0];
       dataset.borderColor = c.primary;
       dataset.pointBackgroundColor = c.primary;
       dataset.pointBorderColor = c.background;
       dataset.pointHoverBackgroundColor = c.primary;
       dataset.pointHoverBorderColor = c.background;
-
-      // Rebuild gradient
       const { ctx, chartArea } = chart;
       if (chartArea) {
         const gradient = ctx.createLinearGradient(
@@ -131,14 +148,13 @@ export default function RevenueChart() {
         );
         gradient.addColorStop(0, c.primary + "40");
         gradient.addColorStop(1, c.primary + "00");
-        dataset.backgroundColor = gradient as any;
+        dataset.backgroundColor = gradient as unknown as string;
       }
-
-      // Update scales and tooltip colors
       const xScale = chart.options.scales?.x;
       const yScale = chart.options.scales?.y;
       if (xScale?.ticks) xScale.ticks.color = c.muted;
-      if (xScale?.border) (xScale.border as any).color = c.border;
+      if (xScale?.border)
+        (xScale.border as Record<string, unknown>).color = c.border;
       if (yScale?.ticks) yScale.ticks.color = c.muted;
       if (yScale?.grid) yScale.grid.color = c.border + "40";
       if (chart.options.plugins?.tooltip) {
@@ -150,11 +166,8 @@ export default function RevenueChart() {
         chart.options.plugins.tooltip.bodyColor = c.foreground;
         chart.options.plugins.tooltip.borderColor = c.border;
       }
-
-      chart.update("none"); // silent update, no animation
+      chart.update("none");
     };
-
-    // Run immediately and also watch for class changes on <html>
     update();
     const observer = new MutationObserver(update);
     observer.observe(document.documentElement, {
@@ -164,17 +177,17 @@ export default function RevenueChart() {
     return () => observer.disconnect();
   }, [theme]);
 
-  // Seed with safe fallbacks so first render never crashes
   const initial = typeof window !== "undefined" ? getColors() : FALLBACKS.light;
+  const maxValue = Math.max(...dataPoints, 100);
 
   const data = {
-    labels: ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan"],
+    labels,
     datasets: [
       {
         label: "Revenue",
-        data: [2400, 3200, 2800, 4100, 3600, 5000],
+        data: dataPoints,
         borderColor: initial.primary,
-        backgroundColor: initial.primary + "20", // plain hex with alpha, safe for first paint
+        backgroundColor: initial.primary + "20",
         fill: true,
         tension: 0.4,
         pointBackgroundColor: initial.primary,
@@ -194,7 +207,7 @@ export default function RevenueChart() {
       ? document.documentElement.classList.contains("dark")
       : false;
 
-  const options: any = {
+  const options: Parameters<typeof Line>[0]["options"] = {
     responsive: true,
     maintainAspectRatio: false,
     animation: { duration: 400 },
@@ -210,7 +223,8 @@ export default function RevenueChart() {
         cornerRadius: 8,
         displayColors: false,
         callbacks: {
-          label: (ctx: any) => `Revenue: $${ctx.parsed.y.toLocaleString()}`,
+          label: (ctx) =>
+            `Revenue: $${(ctx.parsed.y as number).toLocaleString()}`,
         },
       },
     },
@@ -221,12 +235,14 @@ export default function RevenueChart() {
         border: { color: initial.border },
       },
       y: {
-        grid: { color: initial.border + "40", drawBorder: false },
+        min: 0,
+        max: Math.ceil((maxValue * 1.2) / 100) * 100, // 20% headroom, rounded to nearest 100
+        grid: { color: initial.border + "40" },
         ticks: {
           color: initial.muted,
           font: { size: 12 },
-          callback: (v: any) => "$" + v.toLocaleString(),
-          maxTicksLimit: 6,
+          callback: (v) => "$" + Number(v).toLocaleString(),
+          maxTicksLimit: 5,
         },
         border: { display: false },
       },

@@ -1,19 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import type React from "react";
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
-import { Search, Filter, Download, FileText } from "lucide-react";
-import { useDataStore } from "@/store/data-store";
+import {
+  Plus,
+  Search,
+  Filter,
+  FileText,
+  Trash2,
+  CheckCircle,
+  Loader2,
+  Pencil,
+} from "lucide-react";
+import { useDataStore, type Invoice } from "@/store/data-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -22,224 +44,505 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+
+type InvoiceStatus = Invoice["status"];
+
+function statusVariant(status: InvoiceStatus) {
+  switch (status) {
+    case "PAID":
+      return "secondary";
+    case "PENDING":
+      return "default";
+    case "OVERDUE":
+      return "destructive";
+    case "DRAFT":
+      return "outline";
+    case "CANCELLED":
+      return "outline";
+  }
+}
+
+function generateInvoiceNumber() {
+  return `INV-${Date.now().toString().slice(-6)}`;
+}
+
+const emptyForm = {
+  invoiceNumber: generateInvoiceNumber(),
+  clientId: "",
+  projectId: "",
+  amount: "",
+  dueDate: "",
+  notes: "",
+};
 
 export function InvoicesContent() {
-  const { invoices } = useDataStore();
+  const {
+    invoices,
+    clients,
+    projects,
+    isLoadingInvoices,
+    fetchInvoices,
+    fetchClients,
+    fetchProjects,
+    createInvoice,
+    updateInvoice,
+    deleteInvoice,
+    markInvoicePaid,
+  } = useDataStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
 
-  const filteredInvoices = invoices.filter((invoice) => {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { isDirty, isSubmitting },
+  } = useForm({
+    defaultValues: emptyForm,
+  });
+
+  useEffect(() => {
+    fetchInvoices();
+    fetchClients();
+    fetchProjects();
+  }, [fetchInvoices, fetchClients, fetchProjects]);
+
+  const openCreate = () => {
+    setEditingInvoice(null);
+    reset({ ...emptyForm, invoiceNumber: generateInvoiceNumber() });
+    setIsFormOpen(true);
+  };
+
+  const openEdit = (invoice: Invoice) => {
+    setEditingInvoice(invoice);
+    reset({
+      invoiceNumber: invoice.invoiceNumber,
+      clientId: invoice.clientId ?? "",
+      projectId: invoice.projectId ?? "",
+      amount: invoice.amount.toString(),
+      dueDate: new Date(invoice.dueDate).toISOString().split("T")[0],
+      notes: invoice.notes ?? "",
+    });
+    setIsFormOpen(true);
+  };
+
+  const openDelete = (invoice: Invoice) => {
+    setDeletingInvoice(invoice);
+    setIsDeleteOpen(true);
+  };
+
+  const onSubmit = async (data: typeof emptyForm) => {
+    const payload = {
+      ...data,
+      amount: data.amount ? parseFloat(data.amount) : 0,
+      clientId: data.clientId || null,
+      projectId: data.projectId || null,
+    };
+    const result = editingInvoice
+      ? await updateInvoice(editingInvoice.id, payload)
+      : await createInvoice(payload);
+    if (result.error) {
+      toast.error("Failed", { description: result.error });
+      return;
+    }
+    toast.success(editingInvoice ? "Invoice updated" : "Invoice created");
+    setIsFormOpen(false);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingInvoice) return;
+    setIsDeleting(true);
+    const result = await deleteInvoice(deletingInvoice.id);
+    setIsDeleting(false);
+    if (result.error) {
+      // Keep dialog open — let user read the error
+      toast.error("Failed to delete", { description: result.error });
+      return;
+    }
+    toast.success("Invoice deleted");
+    setIsDeleteOpen(false);
+  };
+
+  const handleMarkPaid = async (id: string) => {
+    setMarkingPaidId(id);
+    const result = await markInvoicePaid(id);
+    setMarkingPaidId(null);
+    if (result.error) {
+      toast.error("Failed", { description: result.error });
+      return;
+    }
+    toast.success("Invoice marked as paid");
+  };
+
+  const filtered = invoices.filter((inv) => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch =
-      invoice.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === "all" || invoice.status === statusFilter;
+      inv.invoiceNumber.toLowerCase().includes(term) ||
+      (inv.client?.name ?? "").toLowerCase().includes(term);
+    const matchesStatus = statusFilter === "all" || inv.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "paid":
-        return "secondary";
-      case "pending":
-        return "default";
-      case "overdue":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
-
-  const totalAmount = filteredInvoices.reduce(
-    (sum, invoice) => sum + invoice.amount,
-    0,
-  );
-  const paidAmount = filteredInvoices
-    .filter((inv) => inv.status === "paid")
-    .reduce((sum, inv) => sum + inv.amount, 0);
-  const pendingAmount = filteredInvoices
-    .filter((inv) => inv.status === "pending")
-    .reduce((sum, inv) => sum + inv.amount, 0);
+  const totalAmount = filtered.reduce((s, i) => s + i.amount, 0);
+  const paidAmount = filtered
+    .filter((i) => i.status === "PAID")
+    .reduce((s, i) => s + i.amount, 0);
+  const pendingAmount = filtered
+    .filter((i) => i.status === "PENDING" || i.status === "OVERDUE")
+    .reduce((s, i) => s + i.amount, 0);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold font-heading">Invoices</h2>
-        <p className="text-muted-foreground mt-1">
-          Track and manage your client invoices.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold font-heading">Invoices</h2>
+          <p className="text-muted-foreground mt-1">
+            Track and manage your client invoices.
+          </p>
+        </div>
+        <Button onClick={openCreate}>
+          <Plus className="mr-2 h-4 w-4" /> New Invoice
+        </Button>
       </div>
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Amount
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${totalAmount.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Paid</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600 dark:text-green-500">
-                ${paidAmount.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-500">
-                ${pendingAmount.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {[
+          { label: "Total", value: totalAmount, color: "" },
+          {
+            label: "Paid",
+            value: paidAmount,
+            color: "text-green-600 dark:text-green-500",
+          },
+          {
+            label: "Pending / Overdue",
+            value: pendingAmount,
+            color: "text-orange-600 dark:text-orange-500",
+          },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {stat.label}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className={`text-2xl font-bold ${stat.color}`}>
+                  ${stat.value.toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Filters & Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto flex-1">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search invoices..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-48">
-              <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="overdue">Overdue</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4 items-center">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by invoice # or client..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
         </div>
-
-        <Button variant="outline" className="w-full sm:w-auto">
-          <Download className="mr-2 h-4 w-4" />
-          Export All
-        </Button>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-44">
+            <Filter className="mr-2 h-4 w-4" />
+            <SelectValue placeholder="Filter status" />
+          </SelectTrigger>
+          <SelectContent>
+            {["all", "DRAFT", "PENDING", "PAID", "OVERDUE", "CANCELLED"].map(
+              (s) => (
+                <SelectItem key={s} value={s}>
+                  {s === "all"
+                    ? "All Statuses"
+                    : s.charAt(0) + s.slice(1).toLowerCase()}
+                </SelectItem>
+              ),
+            )}
+          </SelectContent>
+        </Select>
       </div>
 
-      {/* Invoices Table */}
+      {/* Table */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={{ delay: 0.35 }}
       >
         <Card>
           <div className="rounded-md border border-border/50">
-            <Table>
-              <TableHeader className="bg-muted/50">
-                <TableRow>
-                  <TableHead className="w-[120px]">Invoice ID</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Issue Date</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInvoices.length > 0 ? (
-                  filteredInvoices.map((invoice) => (
-                    <TableRow
-                      key={invoice.id}
-                      className="group transition-colors hover:bg-muted/30"
-                    >
-                      <TableCell className="font-mono text-xs font-medium">
-                        {invoice.id}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {invoice.client}
-                      </TableCell>
-                      <TableCell>${invoice.amount.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={getStatusColor(invoice.status)}
-                          className="capitalize"
-                        >
-                          {invoice.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(invoice.issueDate).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {new Date(invoice.dueDate).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+            {isLoadingInvoices ? (
+              <div className="p-4 space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            ) : (
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead>Invoice #</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Project</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Due Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length > 0 ? (
+                    filtered.map((invoice) => (
+                      <TableRow
+                        key={invoice.id}
+                        className="group transition-colors hover:bg-muted/30"
+                      >
+                        <TableCell className="font-mono text-xs font-medium">
+                          {invoice.invoiceNumber}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {invoice.client?.name ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {invoice.project?.title ?? "—"}
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                          ${invoice.amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={statusVariant(invoice.status)}
+                            className="capitalize text-xs"
+                          >
+                            {invoice.status.charAt(0) +
+                              invoice.status.slice(1).toLowerCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">
+                          {new Date(invoice.dueDate).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {invoice.status !== "PAID" && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-green-600"
+                                title="Mark as Paid"
+                                disabled={markingPaidId === invoice.id}
+                                onClick={() => handleMarkPaid(invoice.id)}
+                              >
+                                {markingPaidId === invoice.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => openEdit(invoice)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => openDelete(invoice)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-32 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                          <FileText className="h-8 w-8 opacity-20" />
+                          <p>No invoices found.</p>
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-32 text-center">
-                      <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
-                        <FileText className="h-8 w-8 opacity-20" />
-                        <p>No invoices found matching your criteria.</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </Card>
       </motion.div>
+
+      {/* Create / Edit Dialog */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingInvoice ? "Edit Invoice" : "New Invoice"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingInvoice
+                ? "Update invoice details."
+                : "Create a new invoice for a client."}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="invoiceNumber">Invoice # *</Label>
+                <Input
+                  id="invoiceNumber"
+                  {...register("invoiceNumber", { required: true })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="amount">Amount ($) *</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  placeholder="1000"
+                  {...register("amount", { required: true })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Client</Label>
+                <Select
+                  value={watch("clientId")}
+                  onValueChange={(v) =>
+                    setValue("clientId", v === "none" ? "" : v, {
+                      shouldDirty: true,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No client</SelectItem>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Project</Label>
+                <Select
+                  value={watch("projectId")}
+                  onValueChange={(v) =>
+                    setValue("projectId", v === "none" ? "" : v, {
+                      shouldDirty: true,
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full overflow-hidden [&>span]:truncate [&>span]:block">
+                    <SelectValue placeholder="Select project" />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    className="max-h-[300px] w-(--radix-select-trigger-width)"
+                  >
+                    <SelectItem value="none">No project</SelectItem>
+                    {projects.map((p) => (
+                      <SelectItem
+                        key={p.id}
+                        value={p.id}
+                        title={p.title}
+                        className="w-full pr-8 [&>span:last-child]:min-w-0 [&>span:last-child]:truncate [&>span:last-child]:block"
+                      >
+                        {p.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="dueDate">Due Date *</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  {...register("dueDate", { required: true })}
+                />
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Payment terms, notes..."
+                  {...register("notes")}
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsFormOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting || !isDirty}>
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {editingInvoice ? "Save Changes" : "Create Invoice"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete Invoice</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete invoice{" "}
+              <strong>{deletingInvoice?.invoiceNumber}</strong>? This cannot be
+              undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete Invoice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

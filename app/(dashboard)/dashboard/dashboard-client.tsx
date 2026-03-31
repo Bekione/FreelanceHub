@@ -1,7 +1,15 @@
 "use client";
 
+import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { DollarSign, FolderOpen, FileText, Users } from "lucide-react";
+import {
+  DollarSign,
+  FolderOpen,
+  FileText,
+  Users,
+  TrendingUp,
+  Clock,
+} from "lucide-react";
 import { useDataStore } from "@/store/data-store";
 import {
   Card,
@@ -14,21 +22,76 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import RevenueChart from "@/components/charts/revenue-chart";
 
+function statusVariant(status: string) {
+  switch (status) {
+    case "ACTIVE":
+      return "default";
+    case "COMPLETED":
+      return "secondary";
+    default:
+      return "outline";
+  }
+}
+
 export function DashboardContent() {
-  const { projects, invoices, clients, isLoading } = useDataStore();
+  const {
+    projects,
+    invoices,
+    clients,
+    isLoadingProjects,
+    isLoadingInvoices,
+    isLoadingClients,
+    fetchProjects,
+    fetchInvoices,
+    fetchClients,
+  } = useDataStore();
+
+  useEffect(() => {
+    fetchProjects();
+    fetchInvoices();
+    fetchClients();
+  }, [fetchProjects, fetchInvoices, fetchClients]);
+
+  const isLoading = isLoadingProjects || isLoadingInvoices || isLoadingClients;
 
   const stats = {
-    totalProjects: projects.length,
-    totalEarnings: invoices
-      .filter((inv) => inv.status === "paid")
-      .reduce((sum, inv) => sum + inv.amount, 0),
-    pendingInvoices: invoices.filter((inv) => inv.status === "pending").length,
+    totalRevenue: invoices
+      .filter((i) => i.status === "PAID")
+      .reduce((s, i) => s + i.amount, 0),
+    activeProjects: projects.filter((p) => p.status === "ACTIVE").length,
+    pendingInvoicesCount: invoices.filter(
+      (i) => i.status === "PENDING" || i.status === "OVERDUE",
+    ).length,
+    pendingInvoicesAmount: invoices
+      .filter((i) => i.status === "PENDING" || i.status === "OVERDUE")
+      .reduce((s, i) => s + i.amount, 0),
     totalClients: clients.length,
   };
 
-  const recentProjects = projects.slice(0, 3);
+  const recentActivity = [
+    ...invoices
+      .slice(0, 3)
+      .map((i) => ({
+        type: "invoice" as const,
+        label: i.invoiceNumber,
+        sub: i.client?.name ?? "—",
+        status: i.status,
+        date: i.createdAt,
+      })),
+    ...projects
+      .slice(0, 2)
+      .map((p) => ({
+        type: "project" as const,
+        label: p.title,
+        sub: p.client?.name ?? "No client",
+        status: p.status,
+        date: p.createdAt,
+      })),
+  ]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
 
-  if (isLoading) {
+  if (isLoading && projects.length === 0 && invoices.length === 0) {
     return <DashboardSkeleton />;
   }
 
@@ -43,91 +106,56 @@ export function DashboardContent() {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Projects
-              </CardTitle>
-              <FolderOpen className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalProjects}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                +2 from last month
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Earnings
-              </CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                ${stats.totalEarnings.toLocaleString()}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                +20.1% from last month
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Pending Invoices
-              </CardTitle>
-              <FileText className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingInvoices}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                -1 from last week
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Total Clients
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalClients}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                +1 new this month
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {[
+          {
+            label: "Total Revenue",
+            value: `$${stats.totalRevenue.toLocaleString()}`,
+            sub: "From paid invoices",
+            icon: DollarSign,
+            iconColor: "text-green-600 dark:text-green-500",
+          },
+          {
+            label: "Active Projects",
+            value: stats.activeProjects,
+            sub: `${projects.length} total`,
+            icon: FolderOpen,
+            iconColor: "text-blue-600 dark:text-blue-400",
+          },
+          {
+            label: "Pending Invoices",
+            value: stats.pendingInvoicesCount,
+            sub: `$${stats.pendingInvoicesAmount.toLocaleString()} outstanding`,
+            icon: FileText,
+            iconColor: "text-orange-600 dark:text-orange-400",
+          },
+          {
+            label: "Total Clients",
+            value: stats.totalClients,
+            sub: "In your network",
+            icon: Users,
+            iconColor: "text-purple-600 dark:text-purple-400",
+          },
+        ].map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 }}
+          >
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {stat.label}
+                </CardTitle>
+                <stat.icon className={`h-4 w-4 ${stat.iconColor}`} />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
@@ -140,7 +168,10 @@ export function DashboardContent() {
         >
           <Card className="h-full">
             <CardHeader>
-              <CardTitle>Revenue Overview</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                Revenue Overview
+              </CardTitle>
               <CardDescription>
                 Your earnings over the last 6 months
               </CardDescription>
@@ -151,7 +182,7 @@ export function DashboardContent() {
           </Card>
         </motion.div>
 
-        {/* Recent Projects */}
+        {/* Recent Activity */}
         <motion.div
           className="lg:col-span-3"
           initial={{ opacity: 0, y: 10 }}
@@ -160,41 +191,39 @@ export function DashboardContent() {
         >
           <Card className="h-full">
             <CardHeader>
-              <CardTitle>Recent Projects</CardTitle>
-              <CardDescription>Your latest project updates</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                Recent Activity
+              </CardTitle>
+              <CardDescription>Latest projects and invoices</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {recentProjects.length > 0 ? (
-                recentProjects.map((project) => (
+            <CardContent className="space-y-4">
+              {recentActivity.length > 0 ? (
+                recentActivity.map((item, i) => (
                   <div
-                    key={project.id}
-                    className="flex items-center justify-between"
+                    key={i}
+                    className="flex items-center justify-between gap-4"
                   >
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {project.title}
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <p className="text-sm font-medium leading-none truncate">
+                        {item.label}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {project.client}
+                      <p className="text-xs text-muted-foreground truncate">
+                        {item.sub}
                       </p>
                     </div>
                     <Badge
-                      variant={
-                        project.status === "active"
-                          ? "default"
-                          : project.status === "completed"
-                            ? "secondary"
-                            : "outline"
-                      }
-                      className="capitalize"
+                      variant={statusVariant(item.status)}
+                      className="capitalize text-xs shrink-0"
                     >
-                      {project.status}
+                      {item.status.charAt(0) +
+                        item.status.slice(1).toLowerCase()}
                     </Badge>
                   </div>
                 ))
               ) : (
-                <div className="text-center py-4 text-sm text-muted-foreground">
-                  No projects found.
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  No recent activity. Start by adding clients and projects!
                 </div>
               )}
             </CardContent>
@@ -212,7 +241,6 @@ function DashboardSkeleton() {
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-4 w-96 mt-2" />
       </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i}>
@@ -226,8 +254,7 @@ function DashboardSkeleton() {
           </Card>
         ))}
       </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+      <div className="grid gap-6 lg:grid-cols-7">
         <Card className="lg:col-span-4">
           <CardHeader>
             <Skeleton className="h-6 w-32" />
@@ -237,16 +264,14 @@ function DashboardSkeleton() {
             <Skeleton className="h-[300px] w-full" />
           </CardContent>
         </Card>
-
         <Card className="lg:col-span-3">
           <CardHeader>
             <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-4 w-48" />
           </CardHeader>
-          <CardContent className="space-y-6">
-            {Array.from({ length: 3 }).map((_, i) => (
+          <CardContent className="space-y-4">
+            {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="flex items-center justify-between">
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-3 w-24" />
                 </div>
