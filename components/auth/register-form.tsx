@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { signIn } from "@/lib/auth-client";
+import { signUp, signIn } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,8 +41,9 @@ function GoogleIcon() {
   );
 }
 
-export function LoginForm() {
+export function RegisterForm() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -53,11 +54,19 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
     setIsLoading(true);
     try {
-      const { error: authError } = await signIn.email({ email, password });
+      const { error: authError } = await signUp.email({
+        name,
+        email,
+        password,
+      });
       if (authError) {
-        setError(authError.message ?? "Invalid email or password.");
+        setError(authError.message ?? "Registration failed. Please try again.");
       } else {
         router.push("/dashboard");
       }
@@ -99,9 +108,11 @@ export function LoginForm() {
               FreelanceHub
             </span>
           </div>
-          <CardTitle className="text-2xl font-heading">Welcome back</CardTitle>
+          <CardTitle className="text-2xl font-heading">
+            Create an account
+          </CardTitle>
           <CardDescription>
-            Sign in to manage your freelance work
+            Start managing your freelance work for free
           </CardDescription>
         </CardHeader>
 
@@ -133,6 +144,19 @@ export function LoginForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="name">Full name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Alex Johnson"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoComplete="name"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -155,7 +179,7 @@ export function LoginForm() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   className="pr-10"
                 />
                 <button
@@ -171,6 +195,9 @@ export function LoginForm() {
                   )}
                 </button>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Minimum 8 characters
+              </p>
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
@@ -183,21 +210,21 @@ export function LoginForm() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in…
+                  Creating account…
                 </>
               ) : (
-                "Sign in"
+                "Create account"
               )}
             </Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
+            Already have an account?{" "}
             <Link
-              href="/register"
+              href="/login"
               className="text-primary font-medium hover:underline"
             >
-              Create one
+              Sign in
             </Link>
           </p>
         </CardContent>
