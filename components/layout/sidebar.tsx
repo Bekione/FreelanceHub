@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { AppLogo } from "@/components/app-logo";
 
 interface SidebarProps {
   open: boolean;
@@ -62,27 +62,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
       >
         {/* Brand */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-sidebar-border shrink-0">
-          <div className="flex items-center">
-            <div className="w-10 h-10 text-sidebar-primary  flex items-center justify-center">
-              <svg
-                version="1.1"
-                viewBox="0 0 1984 2012"
-                width="496"
-                height="503"
-                className="w-10 h-10"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  transform="translate(791,429)"
-                  d="m0 0h584l16 2 18 6 14 7 13 9 15 13 11 14 8 14 6 14 5 21 2 22v567l-2 22-4 17-7 19-8 15-9 11-9 10-6 7-6 5-277 277-8 7-11 9-10 7-17 9-19 6-16 2h-544l-15-2-17-6-16-8-13-9-12-11-10-11-10-16-7-16-4-14-2-14-1-36v-453l1-17 4-20 6-16 12-21 29-43 16-25 30-45 9-14 11-17 22-33 26-40 10-15 21-32 10-15 15-23 21-32 15-23 20-30 8-10 14-15 8-7 15-10 11-5 17-6zm128 133-1 136v192l1 85h208l1-130h127v-86h-128l1-21h127v-176z"
-                  fill="currentColor"
-                />
-              </svg>
-            </div>
-            <span className="font-semibold text-lg italic font-heading text-sidebar-foreground">
-              FreelanceHub
-            </span>
-          </div>
+          <AppLogo />
           <Button
             variant="ghost"
             size="icon"

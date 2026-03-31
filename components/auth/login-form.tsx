@@ -16,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { AppLogo } from "@/components/app-logo";
 
 // Inline Google icon SVG
 function GoogleIcon() {
@@ -89,16 +90,7 @@ export function LoginForm() {
       <Card className="border-border/60 shadow-xl">
         <CardHeader className="space-y-1 pb-6">
           {/* Logo */}
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">
-                F
-              </span>
-            </div>
-            <span className="font-semibold text-lg font-heading">
-              FreelanceHub
-            </span>
-          </div>
+          <AppLogo className="mb-2" />
           <CardTitle className="text-2xl font-heading">Welcome back</CardTitle>
           <CardDescription>
             Sign in to manage your freelance work
