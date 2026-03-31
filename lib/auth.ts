@@ -15,6 +15,28 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
+  user: {
+    additionalFields: {
+      onboardingCompleted: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+      },
+      role: {
+        type: "string",
+        required: false,
+      },
+      companySize: {
+        type: "string",
+        required: false,
+      },
+      themePreference: {
+        type: "string",
+        required: false,
+      },
+    },
+  },
+
   // Email + password sign-up / sign-in
   emailAndPassword: {
     enabled: true,

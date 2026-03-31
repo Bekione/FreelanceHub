@@ -24,6 +24,12 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Onboarding Data
+  onboardingCompleted Boolean @default(false)
+  role                String?
+  companySize         String?
+  themePreference     String?
+
   // App relations
   profile       Profile?
   projects      Project[]
