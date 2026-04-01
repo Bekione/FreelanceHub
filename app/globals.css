@@ -128,3 +128,20 @@
     @apply font-sans;
   }
 }
+
+@layer utilities {
+  .glass {
+    @apply bg-card/60 backdrop-blur-xl border border-foreground/[0.08];
+  }
+  .glass-strong {
+    @apply bg-card/80 backdrop-blur-2xl border border-foreground/[0.1];
+  }
+  .glow-primary {
+    box-shadow:
+      0 0 60px hsl(45 100% 55% / 0.15),
+      0 0 120px hsl(45 100% 55% / 0.05);
+  }
+  .text-gradient-primary {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[hsl(35,100%,50%)];
+  }
+}

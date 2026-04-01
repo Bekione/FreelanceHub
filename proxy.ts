@@ -21,7 +21,9 @@ export function proxy(request: NextRequest) {
     pathname.startsWith("/profile");
 
   if (isDashboard && !sessionToken) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirectUrl", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   // Redirect already-authenticated users away from auth pages

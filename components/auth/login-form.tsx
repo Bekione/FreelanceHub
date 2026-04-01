@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Loader2, Eye, EyeOff } from "lucide-react";
@@ -55,6 +55,9 @@ function GoogleIcon() {
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirectUrl") || "/dashboard";
+
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
@@ -78,7 +81,7 @@ export function LoginForm() {
       if (authError) {
         setError(authError.message ?? "Invalid email or password.");
       } else {
-        router.push("/dashboard");
+        router.push(redirectUrl);
       }
     } catch {
       setError("An unexpected error occurred.");
@@ -90,7 +93,7 @@ export function LoginForm() {
     try {
       await signIn.social({
         provider: "google",
-        callbackURL: "/dashboard",
+        callbackURL: redirectUrl,
       });
     } catch {
       setError("Google sign-in failed. Please try again.");
@@ -220,7 +223,11 @@ export function LoginForm() {
           <p className="text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link
-              href="/register"
+              href={
+                redirectUrl !== "/dashboard"
+                  ? `/register?redirectUrl=${encodeURIComponent(redirectUrl)}`
+                  : "/register"
+              }
               className="text-primary font-medium hover:underline"
             >
               Create one
