@@ -132,37 +132,29 @@ export function ProjectsContent() {
 
   // Sync state to URL
   const updateUrl = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams();
 
     if (debouncedSearch) {
       params.set("q", debouncedSearch);
-    } else {
-      params.delete("q");
     }
 
     if (statusFilter && statusFilter !== "all") {
       params.set("status", statusFilter);
-    } else {
-      params.delete("status");
     }
 
     if (currentPage > 1) {
       params.set("page", currentPage.toString());
-    } else {
-      params.delete("page");
     }
 
     const query = params.toString();
     const url = query ? `${pathname}?${query}` : pathname;
-    router.push(url, { scroll: false });
-  }, [
-    debouncedSearch,
-    statusFilter,
-    currentPage,
-    pathname,
-    router,
-    searchParams,
-  ]);
+
+    // Only fetch if url actually changed to prevent loop
+    const currentQuery = new URLSearchParams(window.location.search).toString();
+    if (query !== currentQuery) {
+      router.push(url, { scroll: false });
+    }
+  }, [debouncedSearch, statusFilter, currentPage, pathname, router]);
 
   useEffect(() => {
     updateUrl();
