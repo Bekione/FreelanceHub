@@ -31,6 +31,12 @@ model User {
   themePreference     String?
   plan                String    @default("free")
 
+  // Stripe Billing
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  subscriptionStatus   String?   // active | past_due | canceled | unpaid
+  currentPeriodEnd     DateTime?
+
   // App relations
   profile       Profile?
   projects      Project[]
