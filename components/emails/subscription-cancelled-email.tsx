@@ -7,7 +7,6 @@ import {
   Section,
   Text,
 } from "@react-email/components";
-import React from "react";
 import { EmailShell } from "./email-layout";
 
 interface Props {
