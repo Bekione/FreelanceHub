@@ -93,6 +93,7 @@ const emptyForm = {
   bonus: "",
   platform: "",
   status: "PENDING" as ProjectStatus,
+  createDraftInvoice: false,
 };
 
 export function ProjectsContent() {
@@ -106,6 +107,7 @@ export function ProjectsContent() {
     createProject,
     updateProject,
     deleteProject,
+    createInvoice,
   } = useDataStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -176,11 +178,12 @@ export function ProjectsContent() {
   };
 
   const onSubmit = async (data: typeof emptyForm) => {
+    const { createDraftInvoice, ...projectData } = data;
     const payload = {
-      ...data,
-      clientId: data.clientId || undefined,
-      budget: data.budget ? parseFloat(data.budget) : null,
-      bonus: data.bonus ? parseFloat(data.bonus) : null,
+      ...projectData,
+      clientId: projectData.clientId || undefined,
+      budget: projectData.budget ? parseFloat(projectData.budget) : null,
+      bonus: projectData.bonus ? parseFloat(projectData.bonus) : null,
     };
     const result = editingProject
       ? await updateProject(editingProject.id, payload)
@@ -188,6 +191,20 @@ export function ProjectsContent() {
     if (result.error) {
       toast.error("Failed", { description: result.error });
       return;
+    }
+    // Auto-create a draft invoice if checkbox was checked on new projects
+    if (!editingProject && createDraftInvoice && (result as any).data?.id) {
+      const invoiceNum = `INV-${Date.now().toString().slice(-6)}`;
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+      await createInvoice({
+        invoiceNumber: invoiceNum,
+        projectId: (result as any).data.id,
+        clientId: payload.clientId || null,
+        amount: payload.budget ?? 0,
+        dueDate: dueDate.toISOString(),
+        status: "DRAFT",
+      } as any);
     }
     toast.success(editingProject ? "Project updated" : "Project created");
     setIsFormOpen(false);
@@ -248,7 +265,7 @@ export function ProjectsContent() {
         </Select>
       </div>
 
-      {isLoadingProjects ? (
+      {isLoadingProjects && projects.length === 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <Card key={i}>
@@ -525,6 +542,23 @@ export function ProjectsContent() {
                 </Select>
               </div>
             </div>
+            {/* Auto-draft invoice — only on create */}
+            {!editingProject && (
+              <div className="flex items-center gap-3">
+                <input
+                  id="createDraftInvoice"
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary cursor-pointer"
+                  {...register("createDraftInvoice")}
+                />
+                <label
+                  htmlFor="createDraftInvoice"
+                  className="text-sm cursor-pointer select-none"
+                >
+                  Auto-create a draft invoice for this project
+                </label>
+              </div>
+            )}
             <DialogFooter>
               <Button
                 type="button"

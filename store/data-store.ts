@@ -155,7 +155,9 @@ export const useDataStore = create<DataState>((set, get) => ({
   clientsError: null,
 
   fetchClients: async (params = {}) => {
-    set({ isLoadingClients: true, clientsError: null });
+    // Only show loading skeleton on first fetch (data not yet loaded)
+    const alreadyLoaded = get().clients.length > 0;
+    if (!alreadyLoaded) set({ isLoadingClients: true, clientsError: null });
     try {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set("page", params.page.toString());
@@ -182,6 +184,7 @@ export const useDataStore = create<DataState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) return { error: json.error ?? "Failed to create client" };
     set((s) => ({ clients: [json, ...s.clients] }));
+    get().fetchMetrics();
     return {};
   },
 
@@ -194,6 +197,7 @@ export const useDataStore = create<DataState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) return { error: json.error ?? "Failed to update client" };
     set((s) => ({ clients: s.clients.map((c) => (c.id === id ? json : c)) }));
+    get().fetchMetrics();
     return {};
   },
 
@@ -202,6 +206,7 @@ export const useDataStore = create<DataState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) return { error: json.error ?? "Failed to delete client" };
     set((s) => ({ clients: s.clients.filter((c) => c.id !== id) }));
+    get().fetchMetrics();
     return {};
   },
 
@@ -212,7 +217,8 @@ export const useDataStore = create<DataState>((set, get) => ({
   projectsError: null,
 
   fetchProjects: async (params = {}) => {
-    set({ isLoadingProjects: true, projectsError: null });
+    const alreadyLoaded = get().projects.length > 0;
+    if (!alreadyLoaded) set({ isLoadingProjects: true, projectsError: null });
     try {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set("page", params.page.toString());
@@ -241,7 +247,8 @@ export const useDataStore = create<DataState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) return { error: json.error ?? "Failed to create project" };
     set((s) => ({ projects: [json, ...s.projects] }));
-    return {};
+    get().fetchMetrics();
+    return { data: json };
   },
 
   updateProject: async (id, data) => {
@@ -253,6 +260,7 @@ export const useDataStore = create<DataState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) return { error: json.error ?? "Failed to update project" };
     set((s) => ({ projects: s.projects.map((p) => (p.id === id ? json : p)) }));
+    get().fetchMetrics();
     return {};
   },
 
@@ -261,6 +269,7 @@ export const useDataStore = create<DataState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) return { error: json.error ?? "Failed to delete project" };
     set((s) => ({ projects: s.projects.filter((p) => p.id !== id) }));
+    get().fetchMetrics();
     return {};
   },
 
@@ -271,7 +280,8 @@ export const useDataStore = create<DataState>((set, get) => ({
   invoicesError: null,
 
   fetchInvoices: async (params = {}) => {
-    set({ isLoadingInvoices: true, invoicesError: null });
+    const alreadyLoaded = get().invoices.length > 0;
+    if (!alreadyLoaded) set({ isLoadingInvoices: true, invoicesError: null });
     try {
       const searchParams = new URLSearchParams();
       if (params.page) searchParams.set("page", params.page.toString());
@@ -300,6 +310,8 @@ export const useDataStore = create<DataState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) return { error: json.error ?? "Failed to create invoice" };
     set((s) => ({ invoices: [json, ...s.invoices] }));
+    // Refresh metrics so summary cards stay current
+    get().fetchMetrics();
     return {};
   },
 
@@ -314,6 +326,8 @@ export const useDataStore = create<DataState>((set, get) => ({
     set((s) => ({
       invoices: s.invoices.map((inv) => (inv.id === id ? json : inv)),
     }));
+    // Refresh metrics so summary cards stay current
+    get().fetchMetrics();
     return {};
   },
 
@@ -322,6 +336,7 @@ export const useDataStore = create<DataState>((set, get) => ({
     const json = await res.json();
     if (!res.ok) return { error: json.error ?? "Failed to delete invoice" };
     set((s) => ({ invoices: s.invoices.filter((inv) => inv.id !== id) }));
+    get().fetchMetrics();
     return {};
   },
 
@@ -334,7 +349,8 @@ export const useDataStore = create<DataState>((set, get) => ({
   isLoadingMetrics: false,
 
   fetchMetrics: async () => {
-    set({ isLoadingMetrics: true });
+    const alreadyLoaded = get().dashboardMetrics !== null;
+    if (!alreadyLoaded) set({ isLoadingMetrics: true });
     try {
       const res = await fetch("/api/metrics");
       if (!res.ok) throw new Error("Failed to fetch metrics");

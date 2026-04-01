@@ -34,13 +34,16 @@ function statusVariant(status: string) {
 }
 
 export function DashboardContent() {
-  const { dashboardMetrics, isLoadingMetrics, fetchMetrics } = useDataStore();
+  const { dashboardMetrics, isLoadingMetrics, fetchMetrics, fetchInvoices } =
+    useDataStore();
 
   useEffect(() => {
     fetchMetrics();
-  }, [fetchMetrics]);
+    fetchInvoices(); // Needed so RevenueChart can read PAID invoices from the store
+  }, [fetchMetrics, fetchInvoices]);
 
-  const isLoading = isLoadingMetrics || !dashboardMetrics;
+  // Only show skeleton on the very first visit (no cached data yet)
+  const isLoading = isLoadingMetrics && !dashboardMetrics;
 
   const stats = dashboardMetrics || {
     totalRevenue: 0,

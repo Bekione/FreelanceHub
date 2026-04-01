@@ -81,6 +81,7 @@ const emptyForm = {
   amount: "",
   dueDate: "",
   notes: "",
+  status: "DRAFT" as Invoice["status"],
 };
 
 export function InvoicesContent() {
@@ -121,6 +122,28 @@ export function InvoicesContent() {
   } = useForm({
     defaultValues: emptyForm,
   });
+
+  // Smart form: watch selected client and project
+  const selectedClientId = watch("clientId");
+  const selectedProjectId = watch("projectId");
+
+  // Filter projects to only those belonging to the selected client
+  const projectsForForm = selectedClientId
+    ? projects.filter((p) => !p.clientId || p.clientId === selectedClientId)
+    : projects;
+
+  // When project changes → auto-fill client + amount from project budget
+  useEffect(() => {
+    if (!selectedProjectId || selectedProjectId === "none") return;
+    const proj = projects.find((p) => p.id === selectedProjectId);
+    if (!proj) return;
+    if (proj.clientId && !selectedClientId) {
+      setValue("clientId", proj.clientId, { shouldDirty: true });
+    }
+    if (proj.budget != null) {
+      setValue("amount", proj.budget.toString(), { shouldDirty: true });
+    }
+  }, [selectedProjectId, projects, selectedClientId, setValue]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -168,6 +191,7 @@ export function InvoicesContent() {
       amount: invoice.amount.toString(),
       dueDate: new Date(invoice.dueDate).toISOString().split("T")[0],
       notes: invoice.notes ?? "",
+      status: invoice.status,
     });
     setIsFormOpen(true);
   };
@@ -183,6 +207,8 @@ export function InvoicesContent() {
       amount: data.amount ? parseFloat(data.amount) : 0,
       clientId: data.clientId || null,
       projectId: data.projectId || null,
+      // Only send status when editing (new invoices are always draft)
+      ...(editingInvoice ? { status: data.status } : {}),
     };
     const result = editingInvoice
       ? await updateInvoice(editingInvoice.id, payload)
@@ -220,6 +246,8 @@ export function InvoicesContent() {
     toast.success("Invoice marked as paid");
   };
 
+  // Only show the full table skeleton on the very first load
+  const showSkeleton = isLoadingInvoices && invoices.length === 0;
   const totalAmount =
     (dashboardMetrics?.totalRevenue || 0) +
     (dashboardMetrics?.pendingInvoicesAmount || 0);
@@ -315,7 +343,7 @@ export function InvoicesContent() {
       >
         <Card>
           <div className="rounded-md border border-border/50">
-            {isLoadingInvoices ? (
+            {showSkeleton ? (
               <div className="p-4 space-y-3">
                 {Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="h-10 w-full" />
@@ -371,16 +399,24 @@ export function InvoicesContent() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-green-600"
+                                className="relative h-8 w-8 text-green-600"
                                 title="Mark as Paid"
                                 disabled={markingPaidId === invoice.id}
                                 onClick={() => handleMarkPaid(invoice.id)}
                               >
-                                {markingPaidId === invoice.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <CheckCircle className="h-4 w-4" />
-                                )}
+                                <span className="flex items-center justify-center w-4 h-4">
+                                  {markingPaidId === invoice.id ? (
+                                    <Loader2
+                                      className="h-4 w-4 animate-spin"
+                                      style={{
+                                        transformOrigin: "center",
+                                        transformBox: "fill-box",
+                                      }}
+                                    />
+                                  ) : (
+                                    <CheckCircle className="h-4 w-4" />
+                                  )}
+                                </span>
                               </Button>
                             )}
                             <Button
@@ -531,7 +567,7 @@ export function InvoicesContent() {
                     className="max-h-[300px] w-(--radix-select-trigger-width)"
                   >
                     <SelectItem value="none">No project</SelectItem>
-                    {projects.map((p) => (
+                    {projectsForForm.map((p) => (
                       <SelectItem
                         key={p.id}
                         value={p.id}
@@ -544,6 +580,39 @@ export function InvoicesContent() {
                   </SelectContent>
                 </Select>
               </div>
+              {/* Status — only shown when editing */}
+              {editingInvoice && (
+                <div className="col-span-2 space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={watch("status")}
+                    onValueChange={(v) =>
+                      setValue("status", v as Invoice["status"], {
+                        shouldDirty: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(
+                        [
+                          "DRAFT",
+                          "PENDING",
+                          "PAID",
+                          "OVERDUE",
+                          "CANCELLED",
+                        ] as const
+                      ).map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {s.charAt(0) + s.slice(1).toLowerCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="dueDate">Due Date *</Label>
                 <Input
