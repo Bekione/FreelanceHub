@@ -79,10 +79,12 @@ export default function OnboardingPage() {
     await new Promise((r) => setTimeout(r, 800));
 
     try {
+      const savedPlan = localStorage.getItem("intended_plan") || "free";
       const res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        // Append plan flag along with form data
+        body: JSON.stringify({ ...formData, plan: savedPlan }),
       });
 
       if (!res.ok) throw new Error("Failed to save");
@@ -94,7 +96,16 @@ export default function OnboardingPage() {
         setTheme("dark");
       }
 
-      router.push("/dashboard");
+      // Cleanup storage
+      localStorage.removeItem("intended_plan");
+
+      // Route to payment processing if Pro was explicitly chosen
+      if (savedPlan === "pro") {
+        router.push("/checkout");
+      } else {
+        router.push("/dashboard");
+      }
+
       router.refresh();
     } catch (e) {
       toast.error("Something went wrong");

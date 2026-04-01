@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -59,6 +59,14 @@ export function RegisterForm() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirectUrl") || "/dashboard";
 
+  // Capture the intended plan from URL (e.g., ?plan=pro) to persist through onboarding
+  useEffect(() => {
+    const plan = searchParams.get("plan");
+    if (plan) {
+      localStorage.setItem("intended_plan", plan);
+    }
+  }, [searchParams]);
+
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [error, setError] = useState("");
@@ -96,6 +104,7 @@ export function RegisterForm() {
       await signIn.social({
         provider: "google",
         callbackURL: redirectUrl,
+        errorCallbackURL: "/auth-error",
       });
     } catch {
       setError("Google sign-in failed. Please try again.");

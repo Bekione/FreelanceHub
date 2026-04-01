@@ -29,6 +29,7 @@ model User {
   role                String?
   companySize         String?
   themePreference     String?
+  plan                String    @default("free")
 
   // App relations
   profile       Profile?

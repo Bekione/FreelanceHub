@@ -94,6 +94,7 @@ export function LoginForm() {
       await signIn.social({
         provider: "google",
         callbackURL: redirectUrl,
+        errorCallbackURL: "/auth-error",
       });
     } catch {
       setError("Google sign-in failed. Please try again.");
