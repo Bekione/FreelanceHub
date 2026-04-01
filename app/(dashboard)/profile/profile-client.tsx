@@ -11,7 +11,10 @@ import {
   ShieldCheck,
   AlertTriangle,
   Loader2,
+  Zap,
+  ExternalLink,
 } from "lucide-react";
+
 import { useSession, authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,7 +37,96 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import Link from "next/link";
+
+function SubscriptionCard({ isPro }: { isPro: boolean }) {
+  const [loadingPortal, setLoadingPortal] = useState(false);
+
+  const handleManageSubscription = async () => {
+    setLoadingPortal(true);
+    try {
+      const res = await fetch("/api/stripe/create-portal-session", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error("Could not open billing portal");
+        setLoadingPortal(false);
+      }
+    } catch {
+      toast.error("Something went wrong");
+      setLoadingPortal(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-primary" />
+          <CardTitle>Subscription</CardTitle>
+        </div>
+        <CardDescription>Manage your FreelanceHub plan.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-muted/20">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Zap className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">
+                FreelanceHub {isPro ? "Pro" : "Free"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {isPro
+                  ? "$5/month · Auto-renews"
+                  : "Upgrade to unlock Pro features"}
+              </p>
+            </div>
+          </div>
+          {isPro ? (
+            <Badge
+              variant="default"
+              className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+            >
+              ⚡ Active
+            </Badge>
+          ) : (
+            <Badge variant="outline">Free</Badge>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="border-t border-border pt-4">
+        {isPro ? (
+          <Button
+            variant="outline"
+            onClick={handleManageSubscription}
+            disabled={loadingPortal}
+          >
+            {loadingPortal ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <ExternalLink className="mr-2 h-4 w-4" />
+            )}
+            Manage Subscription
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link href="/checkout">
+              <Zap className="mr-2 h-4 w-4" />
+              Upgrade to Pro — $5/mo
+            </Link>
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  );
+}
 
 export function ProfileContent() {
   const router = useRouter();
@@ -230,6 +322,17 @@ export function ProfileContent() {
 
       <div className="grid gap-6 md:grid-cols-12">
         <div className="md:col-span-12 space-y-6">
+          {/* Subscription Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+          >
+            <SubscriptionCard
+              isPro={(user as { plan?: string })?.plan === "pro"}
+            />
+          </motion.div>
+
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

@@ -11,10 +11,12 @@ import {
   User,
   Clock,
   X,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/app-logo";
+import { useSession } from "@/lib/auth-client";
 
 interface SidebarProps {
   open: boolean;
@@ -32,6 +34,8 @@ const navigation = [
 
 export function Sidebar({ open, setOpen }: SidebarProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isPro = (session?.user as { plan?: string })?.plan === "pro";
 
   return (
     <>
@@ -110,11 +114,32 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
           })}
         </nav>
 
-        {/* Bottom hint */}
-        <div className="px-4 py-3 border-t border-sidebar-border shrink-0">
-          <p className="text-xs text-sidebar-foreground/40 text-center">
-            FreelanceHub v1.0
-          </p>
+        {/* Bottom section */}
+        <div className="px-4 py-3 border-t border-sidebar-border shrink-0 space-y-3">
+          {isPro ? (
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-sidebar-foreground/40">
+                FreelanceHub v1.0
+              </span>
+              <span className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                <Zap className="h-3 w-3" />
+                Pro
+              </span>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-sidebar-foreground/40 text-center">
+                FreelanceHub v1.0
+              </p>
+              <Link
+                href="/checkout"
+                className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Upgrade to Pro — $5/mo
+              </Link>
+            </>
+          )}
         </div>
       </motion.aside>
     </>
