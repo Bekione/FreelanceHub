@@ -7,9 +7,50 @@ import { AppLogo } from "@/components/app-logo";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import confetti from "canvas-confetti";
+import { motion } from "framer-motion";
 
 export default function CheckoutSuccessPage() {
   const router = useRouter();
+
+  // Premium Two-Stage Confetti Effect
+  useEffect(() => {
+    const colors = ["#eab308", "#1a0b20", "#b364f1", "#a78bfa"];
+    const defaults = {
+      zIndex: 100,
+      colors,
+      shapes: ["square"] as any,
+      scalar: 0.65, // Delicate, smaller rectangles
+    };
+
+    // Top burst popping downwards
+    confetti(
+      Object.assign({}, defaults, {
+        particleCount: 100, // Thinner, elegant burst
+        angle: 270, // Straight down
+        spread: 140, // Wider cone to cover the screen
+        startVelocity: 25, // Gentle push so it drifts
+        origin: { x: 0.5, y: -0.1 },
+        gravity: 0.6, // Slower fall rate
+      }),
+    );
+
+    // Bottom burst popping upwards after 600ms
+    const timeout = setTimeout(() => {
+      confetti(
+        Object.assign({}, defaults, {
+          particleCount: 120, // Less clustered
+          angle: 90, // Straight up
+          spread: 120, // Wide cone
+          startVelocity: 65, // Shoot up past the card
+          origin: { x: 0.5, y: 1.1 },
+          gravity: 0.7, // Slower fall back down
+        }),
+      );
+    }, 600);
+
+    return () => clearTimeout(timeout);
+  }, []);
 
   // Force the session to refetch so the Pro badge appears immediately.
   // We poll a couple of times because the webhook may still be processing.
@@ -45,7 +86,12 @@ export default function CheckoutSuccessPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
-      <div className="w-full max-w-md space-y-8 glass p-10 rounded-2xl text-center relative">
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-full max-w-md space-y-8 glass p-10 rounded-2xl text-center relative"
+      >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-8 w-40 h-20 bg-primary/30 blur-3xl rounded-full" />
 
         <AppLogo className="mx-auto" />
@@ -92,7 +138,7 @@ export default function CheckoutSuccessPage() {
             <Link href="/profile">Manage Subscription</Link>
           </Button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

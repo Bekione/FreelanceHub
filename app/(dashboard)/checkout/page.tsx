@@ -7,6 +7,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { CheckoutButton } from "./checkout-button";
 import type { Metadata } from "next";
+import { CheckoutCardAnimator } from "./checkout-card-animator";
 
 export const metadata: Metadata = {
   title: "Upgrade to Pro | FreelanceHub",
@@ -28,7 +29,7 @@ export default async function CheckoutPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
-      <div className="w-full max-w-md space-y-8 glass p-10 rounded-2xl relative">
+      <CheckoutCardAnimator className="w-full max-w-md space-y-8 glass p-10 rounded-2xl relative">
         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-primary/20 blur-2xl rounded-full" />
 
         <div className="text-center">
@@ -82,7 +83,7 @@ export default async function CheckoutPage() {
             <Link href="/dashboard">Skip for now, stay on Free</Link>
           </Button>
         </div>
-      </div>
+      </CheckoutCardAnimator>
     </div>
   );
 }
