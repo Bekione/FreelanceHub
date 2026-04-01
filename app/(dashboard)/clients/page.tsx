@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { ClientsContent } from "./clients-client";
 
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function ClientsPage() {
-  return <ClientsContent />;
+  return (
+    <Suspense fallback={null}>
+      <ClientsContent />
+    </Suspense>
+  );
 }
