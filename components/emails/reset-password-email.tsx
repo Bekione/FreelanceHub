@@ -1,17 +1,12 @@
 import {
-  Body,
-  Button,
-  Container,
-  Head,
   Heading,
-  Html,
+  Button,
   Preview,
   Section,
   Text,
-  Img,
 } from "@react-email/components";
-import { Tailwind } from "@react-email/tailwind";
 import React from "react";
+import { EmailShell } from "./email-layout";
 
 interface ResetPasswordEmailProps {
   userFirstname?: string;
@@ -20,63 +15,42 @@ interface ResetPasswordEmailProps {
 
 export const ResetPasswordEmail = ({
   userFirstname = "Freelancer",
-  resetPasswordLink = "https://freelancehub.io/auth/reset-password",
+  resetPasswordLink = "https://freelancehub.vercel.app/auth/reset-password",
 }: ResetPasswordEmailProps) => {
   return (
-    <Html>
-      <Head />
+    <EmailShell preview="FreelanceHub: Reset your password">
       <Preview>FreelanceHub: Reset your password</Preview>
-      <Tailwind>
-        <Body className="bg-white font-sans px-2">
-          <Container className="border border-solid border-[#eaeaea] rounded my-[40px] mx-auto p-[20px] max-w-[465px]">
-            <Section className="mt-[32px] flex justify-center w-full">
-              <Text className="text-black text-[24px] font-bold text-center m-0">
-                FreelanceHub
-              </Text>
-            </Section>
 
-            <Heading className="text-black text-[22px] font-semibold text-center p-0 mt-[10px] mb-[20px] mx-0">
-              Reset your password
-            </Heading>
+      <Heading
+        as="h1"
+        className="m-0 mb-2 text-[26px] font-bold text-[#1a0b20]"
+      >
+        Reset your password
+      </Heading>
 
-            <Text className="text-black text-[14px] leading-[24px]">
-              Hello {userFirstname},
-            </Text>
+      <Text className="text-[15px] text-[#7c5c7c] mt-0 mb-3">
+        Hello {userFirstname},
+      </Text>
 
-            <Text className="text-black text-[14px] leading-[24px]">
-              Someone recently requested a password change for your FreelanceHub
-              account. If this was you, you can set a new password here:
-            </Text>
+      <Text className="text-[15px] text-[#7c5c7c] mt-0 mb-8">
+        Someone recently requested a password change for your FreelanceHub
+        account. If this was you, click the button below to set a new password:
+      </Text>
 
-            <Section className="text-center mt-[32px] mb-[32px]">
-              <Button
-                className="bg-black rounded-lg text-white text-[13px] font-medium no-underline text-center px-6 py-3"
-                href={resetPasswordLink}
-              >
-                Reset password
-              </Button>
-            </Section>
+      <Section className="mb-8 text-center">
+        <Button
+          href={resetPasswordLink}
+          className="rounded-lg bg-[#eab308] px-8 py-3 text-[14px] font-bold text-white no-underline"
+        >
+          Reset Password →
+        </Button>
+      </Section>
 
-            <Text className="text-black text-[14px] leading-[24px]">
-              If you did not request a password change, please ignore this
-              email.
-            </Text>
-
-            <Text className="text-black text-[14px] leading-[24px]">
-              To keep your account secure, please do not forward this email to
-              anyone.
-            </Text>
-
-            <div className="border border-solid border-[#eaeaea] my-[26px] mx-0 w-full" />
-
-            <Text className="text-[#666666] text-[12px] leading-[24px]">
-              This message was sent to you by FreelanceHub. If you have
-              questions, please contact support.
-            </Text>
-          </Container>
-        </Body>
-      </Tailwind>
-    </Html>
+      <Text className="text-[14px] text-[#a890a8]">
+        If you did not request a password change, please ignore this email. To
+        keep your account secure, do not forward this email to anyone.
+      </Text>
+    </EmailShell>
   );
 };
 
