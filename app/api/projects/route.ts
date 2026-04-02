@@ -35,6 +35,7 @@ export async function GET(req: Request) {
       take: limit,
       include: {
         client: { select: { id: true, name: true, company: true } },
+        attachments: true,
         _count: { select: { invoices: true } },
       },
     }),

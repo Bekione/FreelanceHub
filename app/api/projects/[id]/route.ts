@@ -43,6 +43,7 @@ export async function PATCH(
     },
     include: {
       client: { select: { id: true, name: true, company: true } },
+      attachments: true,
     },
   });
 

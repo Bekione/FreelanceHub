@@ -16,10 +16,13 @@ import {
   Filter,
   X,
   Zap,
+  Paperclip,
 } from "lucide-react";
 import { useDataStore, type Project } from "@/store/data-store";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { FREE_LIMITS } from "@/lib/subscription/limits";
+import { useSession } from "@/lib/auth-client";
+import { ProjectAttachments } from "./project-attachments";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -99,6 +102,7 @@ const emptyForm = {
   platform: "",
   status: "PENDING" as ProjectStatus,
   createDraftInvoice: false,
+  attachmentsUpdated: "",
 };
 
 export function ProjectsContent() {
@@ -133,6 +137,7 @@ export function ProjectsContent() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [autoPref, setAutoPref] = useState(false);
 
   // Sync state to URL
   const updateUrl = useCallback(() => {
@@ -163,6 +168,17 @@ export function ProjectsContent() {
   useEffect(() => {
     updateUrl();
   }, [updateUrl]);
+
+  useEffect(() => {
+    fetch("/api/settings/profile")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.autoCreateInvoice !== undefined) {
+          setAutoPref(d.autoCreateInvoice);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const {
     register,
@@ -198,7 +214,7 @@ export function ProjectsContent() {
 
   const openCreate = () => {
     setEditingProject(null);
-    reset(emptyForm);
+    reset({ ...emptyForm, createDraftInvoice: autoPref });
     setIsFormOpen(true);
   };
   const openEdit = (project: Project) => {
@@ -275,6 +291,11 @@ export function ProjectsContent() {
   };
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const { data: session } = useSession();
+  const isPro =
+    (session?.user as any)?.subscriptionStatus === "active" ||
+    (session?.user as any)?.subscriptionStatus === "past_due";
+
   const totalProjects = projectsMeta?.totalItems ?? projects.length;
   const atLimit = !isLoadingProjects && totalProjects >= FREE_LIMITS.projects;
 
@@ -293,7 +314,7 @@ export function ProjectsContent() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {!isLoadingProjects && projectsMeta && (
+          {!isLoadingProjects && projectsMeta && !isPro && (
             <div className="hidden sm:flex flex-col items-end gap-1">
               <span className="text-xs text-muted-foreground">
                 {totalProjects} / {FREE_LIMITS.projects} projects used
@@ -311,9 +332,11 @@ export function ProjectsContent() {
             </div>
           )}
           <Button
-            onClick={atLimit ? () => setShowUpgradeModal(true) : openCreate}
+            onClick={
+              !isPro && atLimit ? () => setShowUpgradeModal(true) : openCreate
+            }
           >
-            {atLimit ? (
+            {!isPro && atLimit ? (
               <>
                 <Zap className="mr-2 h-4 w-4" /> Upgrade for More
               </>
@@ -447,13 +470,28 @@ export function ProjectsContent() {
                         </p>
                       )}
                       <div className="flex items-center justify-between text-sm py-2 border-t border-border/50">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            {project.deadline
-                              ? new Date(project.deadline).toLocaleDateString()
-                              : "No deadline"}
-                          </span>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Calendar className="h-4 w-4" />
+                            <span>
+                              {project.deadline
+                                ? new Date(
+                                    project.deadline,
+                                  ).toLocaleDateString()
+                                : "No deadline"}
+                            </span>
+                          </div>
+                          {(project.attachments?.length ?? 0) > 0 && (
+                            <div
+                              className="flex items-center gap-1 text-muted-foreground"
+                              title={`${project.attachments?.length} attachments`}
+                            >
+                              <Paperclip className="h-3 w-3" />
+                              <span className="text-xs">
+                                {project.attachments?.length}
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5 font-semibold text-foreground">
                           <DollarSign className="h-4 w-4 text-green-600 dark:text-green-500" />
@@ -560,133 +598,158 @@ export function ProjectsContent() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label htmlFor="title">Project Title *</Label>
-              <Input
-                id="title"
-                placeholder="e.g. Website Redesign"
-                {...register("title", { required: true })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Describe the project goals..."
-                {...register("description")}
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="max-h-[60vh] overflow-y-auto px-2 -mx-2 space-y-4 pb-1">
               <div className="space-y-2">
-                <Label>Client</Label>
-                <Select
-                  value={watch("clientId")}
-                  onValueChange={(v) =>
-                    setValue("clientId", v === "none" ? "" : v, {
-                      shouldDirty: true,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select client" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No client</SelectItem>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select
-                  value={watch("status")}
-                  onValueChange={(v) =>
-                    setValue("status", v as ProjectStatus, {
-                      shouldDirty: true,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_OPTIONS.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Deadline</Label>
-                <Input id="deadline" type="date" {...register("deadline")} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="budget">Budget ($)</Label>
+                <Label htmlFor="title">Project Title *</Label>
                 <Input
-                  id="budget"
-                  type="number"
-                  placeholder="5000"
-                  {...register("budget")}
+                  id="title"
+                  placeholder="e.g. Website Redesign"
+                  {...register("title", { required: true })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bonus">Bonus ($)</Label>
-                <Input
-                  id="bonus"
-                  type="number"
-                  placeholder="0"
-                  {...register("bonus")}
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe the project goals..."
+                  {...register("description")}
+                  rows={3}
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Platform</Label>
-                <Select
-                  value={watch("platform")}
-                  onValueChange={(v) =>
-                    setValue("platform", v === "none" ? "" : v, {
-                      shouldDirty: true,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Where from?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Not specified</SelectItem>
-                    {PLATFORM_OPTIONS.map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {p}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Client</Label>
+                  <Select
+                    value={watch("clientId")}
+                    onValueChange={(v) =>
+                      setValue("clientId", v === "none" ? "" : v, {
+                        shouldDirty: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select client" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No client</SelectItem>
+                      {clients.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <Select
+                    value={watch("status")}
+                    onValueChange={(v) =>
+                      setValue("status", v as ProjectStatus, {
+                        shouldDirty: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>
+                          {s.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deadline">Deadline</Label>
+                  <Input id="deadline" type="date" {...register("deadline")} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="budget">Budget ($)</Label>
+                  <Input
+                    id="budget"
+                    type="number"
+                    placeholder="5000"
+                    {...register("budget")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bonus">Bonus ($)</Label>
+                  <Input
+                    id="bonus"
+                    type="number"
+                    placeholder="0"
+                    {...register("bonus")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Platform</Label>
+                  <Select
+                    value={watch("platform")}
+                    onValueChange={(v) =>
+                      setValue("platform", v === "none" ? "" : v, {
+                        shouldDirty: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Where from?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Not specified</SelectItem>
+                      {PLATFORM_OPTIONS.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+
+              {/* Hidden field for form dirtiness on attachment actions */}
+              <input type="hidden" {...register("attachmentsUpdated")} />
+
+              {/* Auto-draft invoice — only on create */}
+              {!editingProject && (
+                <div className="flex items-center gap-3">
+                  <input
+                    id="createDraftInvoice"
+                    type="checkbox"
+                    className="h-4 w-4 accent-primary cursor-pointer"
+                    {...register("createDraftInvoice")}
+                  />
+                  <label
+                    htmlFor="createDraftInvoice"
+                    className="text-sm cursor-pointer select-none"
+                  >
+                    Auto-create a draft invoice for this project
+                  </label>
+                </div>
+              )}
+
+              {/* Attachments Section — only for existing projects */}
+              {editingProject && (
+                <div className="pt-4 border-t border-border mt-4">
+                  <ProjectAttachments
+                    projectId={editingProject.id}
+                    attachments={
+                      projects.find((p) => p.id === editingProject.id)
+                        ?.attachments || []
+                    }
+                    onAttachmentChange={() =>
+                      setValue("attachmentsUpdated", Date.now().toString(), {
+                        shouldDirty: true,
+                      })
+                    }
+                  />
+                </div>
+              )}
             </div>
-            {/* Auto-draft invoice — only on create */}
-            {!editingProject && (
-              <div className="flex items-center gap-3">
-                <input
-                  id="createDraftInvoice"
-                  type="checkbox"
-                  className="h-4 w-4 accent-primary cursor-pointer"
-                  {...register("createDraftInvoice")}
-                />
-                <label
-                  htmlFor="createDraftInvoice"
-                  className="text-sm cursor-pointer select-none"
-                >
-                  Auto-create a draft invoice for this project
-                </label>
-              </div>
-            )}
-            <DialogFooter>
+
+            <DialogFooter className="mt-4 pt-4 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
