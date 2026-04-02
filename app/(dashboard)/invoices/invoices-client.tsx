@@ -11,7 +11,9 @@ import {
   FileText,
   Trash2,
   CheckCircle,
+  Wallet,
   Loader2,
+  X,
   Pencil,
 } from "lucide-react";
 import { useDataStore, type Invoice } from "@/store/data-store";
@@ -90,6 +92,7 @@ export function InvoicesContent() {
     invoices,
     invoicesMeta,
     dashboardMetrics,
+    isLoadingMetrics,
     clients,
     projects,
     isLoadingInvoices,
@@ -336,8 +339,15 @@ export function InvoicesContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${stat.color}`}>
-                  ${stat.value.toLocaleString()}
+                <div
+                  className={`flex items-center text-2xl font-bold ${stat.color}`}
+                >
+                  <span className="mr-1">$</span>
+                  {isLoadingMetrics && !dashboardMetrics ? (
+                    <Skeleton className="h-6 w-24" />
+                  ) : (
+                    stat.value.toLocaleString()
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -347,14 +357,25 @@ export function InvoicesContent() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-center">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex items-center flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by invoice # or client..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 pr-9 flex-1"
           />
+            <Button
+              className={`-ml-9 text-muted-foreground bg-transparent 
+              hover:text-foreground hover:bg-muted transition-colors
+              ${searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+              onClick={() => setSearchTerm("")}
+              size="xs"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-44">
@@ -385,8 +406,8 @@ export function InvoicesContent() {
           <div className="rounded-md border border-border/50">
             {showSkeleton ? (
               <div className="p-4 space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-10 w-full" />
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton key={i} className="h-14 w-full" />
                 ))}
               </div>
             ) : (
@@ -479,12 +500,55 @@ export function InvoicesContent() {
                         </TableCell>
                       </TableRow>
                     ))
+                  ) : debouncedSearch !== "" || statusFilter !== "all" ? (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell
+                        colSpan={7}
+                        className="h-48 text-center bg-transparent"
+                      >
+                        <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                          <Search className="h-8 w-8 opacity-20" />
+                          <p className="font-medium text-foreground">
+                            No matching invoices found
+                          </p>
+                          <p className="text-sm">
+                            We couldn&apos;t find anything matching your search
+                            filters.
+                          </p>
+                          <Button
+                            variant="ghost"
+                            className="mt-2"
+                            onClick={() => {
+                              setSearchTerm("");
+                              setStatusFilter("all");
+                            }}
+                          >
+                            Clear Filters
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   ) : (
-                    <TableRow>
-                      <TableCell colSpan={7} className="h-32 text-center">
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell
+                        colSpan={7}
+                        className="h-48 text-center bg-transparent"
+                      >
                         <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                           <FileText className="h-8 w-8 opacity-20" />
-                          <p>No invoices found.</p>
+                          <p className="font-medium text-foreground">
+                            No invoices yet
+                          </p>
+                          <p className="text-sm">
+                            Create your first invoice to get started!
+                          </p>
+                          <Button
+                            variant="outline"
+                            className="mt-2"
+                            onClick={openCreate}
+                          >
+                            <Plus className="h-4 w-4 mr-2" /> Create Invoice
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

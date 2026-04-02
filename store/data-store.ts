@@ -151,7 +151,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   // ── Clients ──
   clients: [],
   clientsMeta: null,
-  isLoadingClients: false,
+  isLoadingClients: true,
   clientsError: null,
 
   fetchClients: async (params = {}) => {
@@ -213,7 +213,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   // ── Projects ──
   projects: [],
   projectsMeta: null,
-  isLoadingProjects: false,
+  isLoadingProjects: true,
   projectsError: null,
 
   fetchProjects: async (params = {}) => {
@@ -276,7 +276,7 @@ export const useDataStore = create<DataState>((set, get) => ({
   // ── Invoices ──
   invoices: [],
   invoicesMeta: null,
-  isLoadingInvoices: false,
+  isLoadingInvoices: true,
   invoicesError: null,
 
   fetchInvoices: async (params = {}) => {
@@ -346,7 +346,7 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   // ── Metrics ──
   dashboardMetrics: null,
-  isLoadingMetrics: false,
+  isLoadingMetrics: true,
 
   fetchMetrics: async () => {
     const alreadyLoaded = get().dashboardMetrics !== null;

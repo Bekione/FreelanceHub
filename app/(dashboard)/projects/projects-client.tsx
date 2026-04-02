@@ -14,6 +14,7 @@ import {
   Loader2,
   Search,
   Filter,
+  X,
 } from "lucide-react";
 import { useDataStore, type Project } from "@/store/data-store";
 import { Button } from "@/components/ui/button";
@@ -281,14 +282,24 @@ export function ProjectsContent() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-center">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex items-center flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search projects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 pr-9 flex-1"
           />
+          <Button
+            className={`-ml-9 text-muted-foreground bg-transparent 
+              hover:text-foreground hover:bg-muted transition-colors
+              ${searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+            onClick={() => setSearchTerm("")}
+            size="xs"
+            aria-label="Clear search"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-44">
@@ -309,12 +320,20 @@ export function ProjectsContent() {
       {isLoadingProjects && projects.length === 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-8 w-full" />
+            <Card key={i} className="h-full flex flex-col">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-6 w-3/4 mb-1" />
+                <Skeleton className="h-4 w-1/2" />
               </CardHeader>
-              <CardContent>
-                <Skeleton className="h-20 w-full" />
+              <CardContent className="space-y-4 flex-1 flex flex-col justify-end">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-16" />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -404,8 +423,29 @@ export function ProjectsContent() {
                 </Card>
               </motion.div>
             ))
+          ) : debouncedSearch !== "" || statusFilter !== "all" ? (
+            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+              <Search className="h-10 w-10 text-muted-foreground/30" />
+              <p className="text-lg font-medium text-foreground">
+                No matching projects found
+              </p>
+              <p className="text-sm text-muted-foreground max-w-sm text-center">
+                We couldn&apos;t find anything matching your search. Try
+                adjusting your query or filters.
+              </p>
+              <Button
+                variant="ghost"
+                className="mt-2"
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                }}
+              >
+                Clear Filters
+              </Button>
+            </div>
           ) : (
-            <div className="col-span-full py-16 text-center rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
               <FolderOpen className="h-10 w-10 text-muted-foreground/50" />
               <p className="text-lg font-medium text-muted-foreground">
                 No projects yet

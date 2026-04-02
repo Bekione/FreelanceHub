@@ -16,6 +16,7 @@ import {
   FileText,
   FolderOpen,
   Search,
+  X,
 } from "lucide-react";
 import { useDataStore, type Client } from "@/store/data-store";
 import { Button } from "@/components/ui/button";
@@ -193,26 +194,46 @@ export function ClientsContent() {
 
       {/* Filters */}
       <div className="flex gap-4 items-center">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex items-center flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search clients by name, company, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-9 pr-9 flex-1"
           />
+          <Button
+            className={`-ml-9 text-muted-foreground bg-transparent 
+              hover:text-foreground hover:bg-muted transition-colors
+              ${searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+            onClick={() => setSearchTerm("")}
+            size="xs"
+            aria-label="Clear search"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
       {isLoadingClients ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-10 w-full" />
+            <Card key={i} className="h-full flex flex-col">
+              <CardHeader className="pb-4">
+                <div className="flex items-start gap-4">
+                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                  <div className="flex-1 space-y-2 pt-1">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
-                <Skeleton className="h-16 w-full" />
+              <CardContent className="space-y-3 pt-0 flex-1 flex flex-col justify-end">
+                <Skeleton className="h-4 w-full mr-4" />
+                <Skeleton className="h-4 w-4/5" />
+                <div className="pt-2 border-t border-border/50">
+                  <Skeleton className="h-4 w-32" />
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -304,8 +325,26 @@ export function ClientsContent() {
                 </Card>
               </motion.div>
             ))
+          ) : debouncedSearch !== "" ? (
+            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+              <Search className="h-10 w-10 text-muted-foreground/30" />
+              <p className="text-lg font-medium text-foreground">
+                No matching clients found
+              </p>
+              <p className="text-sm text-muted-foreground max-w-sm text-center">
+                We couldn&apos;t find anything matching "{debouncedSearch}". Try
+                adjusting your query.
+              </p>
+              <Button
+                variant="ghost"
+                className="mt-2"
+                onClick={() => setSearchTerm("")}
+              >
+                Clear Search
+              </Button>
+            </div>
           ) : (
-            <div className="col-span-full py-16 text-center rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
               <UserPlus className="h-10 w-10 text-muted-foreground/50" />
               <p className="text-lg font-medium text-muted-foreground">
                 No clients yet
