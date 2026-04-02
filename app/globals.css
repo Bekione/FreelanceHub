@@ -127,14 +127,33 @@
   html {
     @apply font-sans;
   }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: oklch(0.5 0.02 325 / 0.45);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: oklch(0.5 0.02 325 / 0.75);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0.5 0.02 325 / 0.45) transparent;
+  }
 }
 
 @layer utilities {
   .glass {
-    @apply bg-card/60 backdrop-blur-xl border border-foreground/[0.08];
+    @apply bg-card/60 backdrop-blur-xl border border-foreground/8;
   }
   .glass-strong {
-    @apply bg-card/80 backdrop-blur-2xl border border-foreground/[0.1];
+    @apply bg-card/80 backdrop-blur-2xl border border-foreground/10;
   }
   .glow-primary {
     box-shadow:
@@ -142,6 +161,6 @@
       0 0 120px hsl(45 100% 55% / 0.05);
   }
   .text-gradient-primary {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[var(--primary)] to-[hsl(35,100%,50%)];
+    @apply bg-clip-text text-transparent bg-linear-to-r from-primary to-[hsl(35,100%,50%)];
   }
 }
