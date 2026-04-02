@@ -15,8 +15,11 @@ import {
   Loader2,
   X,
   Pencil,
+  Zap,
 } from "lucide-react";
 import { useDataStore, type Invoice } from "@/store/data-store";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { FREE_LIMITS } from "@/lib/subscription/limits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -257,6 +260,11 @@ export function InvoicesContent() {
       ? await updateInvoice(editingInvoice.id, payload)
       : await createInvoice(payload);
     if (result.error) {
+      if ((result as any).code === "UPGRADE_REQUIRED") {
+        setIsFormOpen(false);
+        setShowUpgradeModal(true);
+        return;
+      }
       toast.error("Failed", { description: result.error });
       return;
     }
@@ -291,24 +299,62 @@ export function InvoicesContent() {
 
   // Only show the full table skeleton on the very first load
   const showSkeleton = isLoadingInvoices && invoices.length === 0;
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const totalAmount =
     (dashboardMetrics?.totalRevenue || 0) +
     (dashboardMetrics?.pendingInvoicesAmount || 0);
   const paidAmount = dashboardMetrics?.totalRevenue || 0;
   const pendingAmount = dashboardMetrics?.pendingInvoicesAmount || 0;
+  const totalInvoices = invoicesMeta?.totalItems ?? invoices.length;
+  const atLimit =
+    !showSkeleton && totalInvoices >= FREE_LIMITS.invoicesPerMonth;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        resource="invoices"
+      />
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold font-heading">Invoices</h2>
           <p className="text-muted-foreground mt-1">
             Track and manage your client invoices.
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" /> New Invoice
-        </Button>
+        <div className="flex items-center gap-3">
+          {!showSkeleton && invoicesMeta && (
+            <div className="hidden sm:flex flex-col items-end gap-1">
+              <span className="text-xs text-muted-foreground">
+                {totalInvoices} / {FREE_LIMITS.invoicesPerMonth} this month
+              </span>
+              <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all rounded-full ${
+                    atLimit ? "bg-destructive" : "bg-primary"
+                  }`}
+                  style={{
+                    width: `${Math.min((totalInvoices / FREE_LIMITS.invoicesPerMonth) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          <Button
+            onClick={atLimit ? () => setShowUpgradeModal(true) : openCreate}
+          >
+            {atLimit ? (
+              <>
+                <Zap className="mr-2 h-4 w-4" /> Upgrade for More
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" /> New Invoice
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -365,17 +411,16 @@ export function InvoicesContent() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 pr-9 flex-1"
           />
-            <Button
-              className={`-ml-9 text-muted-foreground bg-transparent 
+          <Button
+            className={`-ml-9 text-muted-foreground bg-transparent 
               hover:text-foreground hover:bg-muted transition-colors
               ${searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-              onClick={() => setSearchTerm("")}
-              size="xs"
-              aria-label="Clear search"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          
+            onClick={() => setSearchTerm("")}
+            size="xs"
+            aria-label="Clear search"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-44">

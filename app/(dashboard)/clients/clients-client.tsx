@@ -17,8 +17,11 @@ import {
   FolderOpen,
   Search,
   X,
+  Zap,
 } from "lucide-react";
 import { useDataStore, type Client } from "@/store/data-store";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { FREE_LIMITS } from "@/lib/subscription/limits";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -77,6 +80,7 @@ export function ClientsContent() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Sync state to URL
   const updateUrl = useCallback(() => {
@@ -157,6 +161,11 @@ export function ClientsContent() {
       ? await updateClient(editingClient.id, data)
       : await createClient(data);
     if (result.error) {
+      if ((result as any).code === "UPGRADE_REQUIRED") {
+        setIsFormOpen(false);
+        setShowUpgradeModal(true);
+        return;
+      }
       toast.error("Failed", { description: result.error });
       return;
     }
@@ -178,18 +187,56 @@ export function ClientsContent() {
     setIsDeleteOpen(false);
   };
 
+  const totalClients = clientsMeta?.totalItems ?? clients.length;
+  const atLimit = !isLoadingClients && totalClients >= FREE_LIMITS.clients;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        resource="clients"
+      />
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold font-heading">Clients</h2>
           <p className="text-muted-foreground mt-1">
             Manage your client relationships and contact information.
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" /> Add Client
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Usage indicator for Free users */}
+          {!isLoadingClients && clientsMeta && (
+            <div className="hidden sm:flex flex-col items-end gap-1">
+              <span className="text-xs text-muted-foreground">
+                {totalClients} / {FREE_LIMITS.clients} clients used
+              </span>
+              <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all rounded-full ${
+                    atLimit ? "bg-destructive" : "bg-primary"
+                  }`}
+                  style={{
+                    width: `${Math.min((totalClients / FREE_LIMITS.clients) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          <Button
+            onClick={atLimit ? () => setShowUpgradeModal(true) : openCreate}
+          >
+            {atLimit ? (
+              <>
+                <Zap className="mr-2 h-4 w-4" /> Upgrade for More
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" /> Add Client
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

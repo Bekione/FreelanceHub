@@ -52,6 +52,25 @@ export async function POST(req: Request) {
   if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // ── Free-tier hard gate ────────────────────────────────────────────────────
+  const { checkLimit } = await import("@/lib/subscription/check-limit");
+  const limitCheck = await checkLimit(
+    session.user.id,
+    "clients",
+    session.user.subscriptionStatus,
+  );
+  if (!limitCheck.allowed) {
+    return NextResponse.json(
+      {
+        error: "UPGRADE_REQUIRED",
+        resource: limitCheck.resource,
+        limit: limitCheck.limit,
+        current: limitCheck.current,
+      },
+      { status: 403 },
+    );
+  }
+
   const body = await req.json();
   const { name, email, company, phone, notes } = body;
 

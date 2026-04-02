@@ -15,8 +15,11 @@ import {
   Search,
   Filter,
   X,
+  Zap,
 } from "lucide-react";
 import { useDataStore, type Project } from "@/store/data-store";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import { FREE_LIMITS } from "@/lib/subscription/limits";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -231,6 +234,11 @@ export function ProjectsContent() {
       ? await updateProject(editingProject.id, payload)
       : await createProject(payload);
     if (result.error) {
+      if ((result as any).code === "UPGRADE_REQUIRED") {
+        setIsFormOpen(false);
+        setShowUpgradeModal(true);
+        return;
+      }
       toast.error("Failed", { description: result.error });
       return;
     }
@@ -266,18 +274,56 @@ export function ProjectsContent() {
     setIsDeleteOpen(false);
   };
 
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const totalProjects = projectsMeta?.totalItems ?? projects.length;
+  const atLimit = !isLoadingProjects && totalProjects >= FREE_LIMITS.projects;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        resource="projects"
+      />
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold font-heading">Projects</h2>
           <p className="text-muted-foreground mt-1">
             Manage your client projects and track progress.
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" /> Add Project
-        </Button>
+        <div className="flex items-center gap-3">
+          {!isLoadingProjects && projectsMeta && (
+            <div className="hidden sm:flex flex-col items-end gap-1">
+              <span className="text-xs text-muted-foreground">
+                {totalProjects} / {FREE_LIMITS.projects} projects used
+              </span>
+              <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all rounded-full ${
+                    atLimit ? "bg-destructive" : "bg-primary"
+                  }`}
+                  style={{
+                    width: `${Math.min((totalProjects / FREE_LIMITS.projects) * 100, 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+          <Button
+            onClick={atLimit ? () => setShowUpgradeModal(true) : openCreate}
+          >
+            {atLimit ? (
+              <>
+                <Zap className="mr-2 h-4 w-4" /> Upgrade for More
+              </>
+            ) : (
+              <>
+                <Plus className="mr-2 h-4 w-4" /> Add Project
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

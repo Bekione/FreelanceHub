@@ -182,7 +182,11 @@ export const useDataStore = create<DataState>((set, get) => ({
       body: JSON.stringify(data),
     });
     const json = await res.json();
-    if (!res.ok) return { error: json.error ?? "Failed to create client" };
+    if (!res.ok)
+      return {
+        error: json.error ?? "Failed to create client",
+        code: json.error,
+      };
     set((s) => ({ clients: [json, ...s.clients] }));
     get().fetchMetrics();
     return {};
@@ -245,7 +249,11 @@ export const useDataStore = create<DataState>((set, get) => ({
       body: JSON.stringify(data),
     });
     const json = await res.json();
-    if (!res.ok) return { error: json.error ?? "Failed to create project" };
+    if (!res.ok)
+      return {
+        error: json.error ?? "Failed to create project",
+        code: json.error,
+      };
     set((s) => ({ projects: [json, ...s.projects] }));
     get().fetchMetrics();
     return { data: json };
@@ -308,7 +316,11 @@ export const useDataStore = create<DataState>((set, get) => ({
       body: JSON.stringify(data),
     });
     const json = await res.json();
-    if (!res.ok) return { error: json.error ?? "Failed to create invoice" };
+    if (!res.ok)
+      return {
+        error: json.error ?? "Failed to create invoice",
+        code: json.error,
+      };
     set((s) => ({ invoices: [json, ...s.invoices] }));
     // Refresh metrics so summary cards stay current
     get().fetchMetrics();
