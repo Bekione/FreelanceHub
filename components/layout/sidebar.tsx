@@ -12,6 +12,7 @@ import {
   Clock,
   X,
   Zap,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ const navigation = [
   { name: "Clients", href: "/clients", icon: Users },
   { name: "Time Tracking", href: "/time-tracking", icon: Clock },
   { name: "Profile", href: "/profile", icon: User },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar({ open, setOpen }: SidebarProps) {
