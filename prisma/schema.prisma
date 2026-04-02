@@ -110,6 +110,17 @@ model Profile {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Branding (Pro-only features — stored for all, only rendered for Pro)
+  brandLogoUrl     String?
+  brandColor       String?  @default("#f59e0b")
+  invoicePrefix    String?  @default("INV-")
+
+  // User Preferences
+  autoCreateInvoice  Boolean @default(false)
+  defaultCurrency    String  @default("USD")
+  timezone           String  @default("UTC")
+  emailNotifications Boolean @default(true)
+
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -123,6 +134,7 @@ model Client {
   userId    String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // soft-delete: null = active, set = trashed
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects  Project[]
@@ -144,6 +156,7 @@ model Project {
   clientId    String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?     // soft-delete: null = active, set = trashed
 
   user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   client      Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
@@ -167,6 +180,7 @@ model Invoice {
   projectId     String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?     // soft-delete: null = active, set = trashed
 
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   client        Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)

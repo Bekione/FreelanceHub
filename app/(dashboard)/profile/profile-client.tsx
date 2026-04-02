@@ -132,6 +132,9 @@ export function ProfileContent() {
   const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user;
+  const isPro =
+    (user as any)?.subscriptionStatus === "active" ||
+    (user as any)?.subscriptionStatus === "past_due";
 
   // Profile Form State
   const [profileData, setProfileData] = useState({ name: "" });
@@ -148,6 +151,8 @@ export function ProfileContent() {
   // Danger Zone State
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1);
+  const [deletePassword, setDeletePassword] = useState("");
 
   // Avatar Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -227,6 +232,30 @@ export function ProfileContent() {
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
+
+    // Safeguard: If password is provided, strictly evaluate it
+    if (deletePassword.trim()) {
+      const { error: pwdError } = await authClient.signIn.email({
+        email: user?.email as string,
+        password: deletePassword,
+      });
+      if (pwdError) {
+        toast.error("Incorrect password", { description: pwdError.message });
+        setIsDeleting(false);
+        return;
+      }
+    }
+
+    // Trigger 'Thanks for using' farewell logic in the background *before* session destruction
+    await fetch("/api/auth/farewell", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: user?.email,
+        name: user?.name,
+      }),
+    }).catch(() => {});
+
     const { error } = await authClient.deleteUser({});
 
     if (error) {
@@ -260,14 +289,24 @@ export function ProfileContent() {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("intent", "avatar");
 
-      const res = await fetch("/api/upload/avatar", {
+      const res = await fetch("/api/upload?intent=avatar", {
         method: "POST",
         body: formData,
       });
 
       if (!res.ok) {
-        throw new Error("Failed to upload image to Cloudinary.");
+        let errMessage = "Failed to upload avatar.";
+        if (res.status === 413) {
+          errMessage = "Image is too large. Please use a file under 5MB.";
+        } else {
+          try {
+            const errData = await res.json();
+            errMessage = errData.error || errMessage;
+          } catch {}
+        }
+        throw new Error(errMessage);
       }
 
       const { url } = await res.json();
@@ -279,10 +318,9 @@ export function ProfileContent() {
       } else {
         toast.success("Avatar updated successfully");
       }
-    } catch (err) {
+    } catch (err: any) {
       toast.error("Upload error", {
-        description:
-          err instanceof Error ? err.message : "Error processing image",
+        description: err.message || "Something went wrong.",
       });
     } finally {
       setIsUploadingAvatar(false);
@@ -451,6 +489,7 @@ export function ProfileContent() {
           </motion.div>
 
           <motion.div
+            id="password-management"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -564,42 +603,99 @@ export function ProfileContent() {
                 </p>
                 <Dialog
                   open={isDeleteDialogOpen}
-                  onOpenChange={setIsDeleteDialogOpen}
+                  onOpenChange={(open) => {
+                    if (!open) {
+                      setDeleteStep(1);
+                      setDeletePassword("");
+                    }
+                    setIsDeleteDialogOpen(open);
+                  }}
                 >
                   <DialogTrigger asChild>
                     <Button variant="destructive">Delete Account</Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                      <DialogTitle>Are you absolutely sure?</DialogTitle>
-                      <DialogDescription>
-                        This action cannot be undone. This will permanently
-                        delete your account and remove your active projects and
-                        data from our servers.
-                      </DialogDescription>
+                      {deleteStep === 1 ? (
+                        <>
+                          <DialogTitle>Are you absolutely sure?</DialogTitle>
+                          <DialogDescription>
+                            This will permanently delete your account and all
+                            associated data. This action cannot be undone.
+                          </DialogDescription>
+                          {isPro && (
+                            <div className="mt-3 p-3 bg-amber-500/10 text-amber-600 dark:text-amber-500 rounded-md border border-amber-500/20 text-sm">
+                              <AlertTriangle className="inline h-4 w-4 mr-2 mb-0.5" />
+                              <strong>Active Pro subscription:</strong> Deleting
+                              your account will discard unused days in your
+                              billing cycle with no refund.
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <DialogTitle>Confirm your identity</DialogTitle>
+                          <DialogDescription>
+                            Enter your password to permanently delete your
+                            account.
+                          </DialogDescription>
+                          <div className="mt-3 space-y-2">
+                            <Label htmlFor="deletePassword">Password</Label>
+                            <Input
+                              id="deletePassword"
+                              type="password"
+                              placeholder="Enter your password"
+                              value={deletePassword}
+                              onChange={(e) =>
+                                setDeletePassword(e.target.value)
+                              }
+                              autoFocus
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              Google sign-in users: leave this blank.
+                            </span>
+                          </div>
+                        </>
+                      )}
                     </DialogHeader>
                     <DialogFooter className="mt-4 gap-2">
                       <Button
                         variant="outline"
-                        onClick={() => setIsDeleteDialogOpen(false)}
+                        onClick={() => {
+                          if (deleteStep === 2) {
+                            setDeleteStep(1);
+                            setDeletePassword("");
+                          } else {
+                            setIsDeleteDialogOpen(false);
+                          }
+                        }}
                         disabled={isDeleting}
                       >
-                        Cancel
+                        {deleteStep === 2 ? "Back" : "Cancel"}
                       </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={handleDeleteAccount}
-                        disabled={isDeleting}
-                      >
-                        {isDeleting ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Deleting...
-                          </>
-                        ) : (
-                          "Yes, delete account"
-                        )}
-                      </Button>
+                      {deleteStep === 1 ? (
+                        <Button
+                          variant="destructive"
+                          onClick={() => setDeleteStep(2)}
+                        >
+                          Continue
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="destructive"
+                          onClick={handleDeleteAccount}
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Deleting...
+                            </>
+                          ) : (
+                            "Delete my account"
+                          )}
+                        </Button>
+                      )}
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
