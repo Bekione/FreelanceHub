@@ -20,6 +20,7 @@ import {
 import { useDataStore, type Invoice } from "@/store/data-store";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { FREE_LIMITS } from "@/lib/subscription/limits";
+import { useSession } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -300,6 +301,11 @@ export function InvoicesContent() {
   // Only show the full table skeleton on the very first load
   const showSkeleton = isLoadingInvoices && invoices.length === 0;
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const { data: session } = useSession();
+  const isPro =
+    (session?.user as any)?.subscriptionStatus === "active" ||
+    (session?.user as any)?.subscriptionStatus === "past_due";
   const totalAmount =
     (dashboardMetrics?.totalRevenue || 0) +
     (dashboardMetrics?.pendingInvoicesAmount || 0);
@@ -324,7 +330,7 @@ export function InvoicesContent() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {!showSkeleton && invoicesMeta && (
+          {!showSkeleton && invoicesMeta && !isPro && (
             <div className="hidden sm:flex flex-col items-end gap-1">
               <span className="text-xs text-muted-foreground">
                 {totalInvoices} / {FREE_LIMITS.invoicesPerMonth} this month
@@ -342,9 +348,11 @@ export function InvoicesContent() {
             </div>
           )}
           <Button
-            onClick={atLimit ? () => setShowUpgradeModal(true) : openCreate}
+            onClick={
+              !isPro && atLimit ? () => setShowUpgradeModal(true) : openCreate
+            }
           >
-            {atLimit ? (
+            {!isPro && atLimit ? (
               <>
                 <Zap className="mr-2 h-4 w-4" /> Upgrade for More
               </>

@@ -13,6 +13,16 @@ export interface Client {
   _count?: { projects: number; invoices: number };
 }
 
+export interface Attachment {
+  id: string;
+  name: string;
+  url: string;
+  size: number;
+  mimeType: string | null;
+  projectId: string;
+  createdAt: string;
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -25,6 +35,7 @@ export interface Project {
   clientId: string | null;
   client: { id: string; name: string; company: string | null } | null;
   createdAt: string;
+  attachments?: Attachment[];
   _count?: { invoices: number };
 }
 

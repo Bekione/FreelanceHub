@@ -22,6 +22,7 @@ import {
 import { useDataStore, type Client } from "@/store/data-store";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { FREE_LIMITS } from "@/lib/subscription/limits";
+import { useSession } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import {
   Pagination,
@@ -81,6 +82,11 @@ export function ClientsContent() {
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const { data: session } = useSession();
+  const isPro =
+    (session?.user as any)?.subscriptionStatus === "active" ||
+    (session?.user as any)?.subscriptionStatus === "past_due";
 
   // Sync state to URL
   const updateUrl = useCallback(() => {
@@ -206,7 +212,7 @@ export function ClientsContent() {
         </div>
         <div className="flex items-center gap-3">
           {/* Usage indicator for Free users */}
-          {!isLoadingClients && clientsMeta && (
+          {!isLoadingClients && clientsMeta && !isPro && (
             <div className="hidden sm:flex flex-col items-end gap-1">
               <span className="text-xs text-muted-foreground">
                 {totalClients} / {FREE_LIMITS.clients} clients used
@@ -224,9 +230,11 @@ export function ClientsContent() {
             </div>
           )}
           <Button
-            onClick={atLimit ? () => setShowUpgradeModal(true) : openCreate}
+            onClick={
+              !isPro && atLimit ? () => setShowUpgradeModal(true) : openCreate
+            }
           >
-            {atLimit ? (
+            {!isPro && atLimit ? (
               <>
                 <Zap className="mr-2 h-4 w-4" /> Upgrade for More
               </>
