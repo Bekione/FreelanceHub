@@ -9,6 +9,8 @@ export interface Client {
   company: string | null;
   phone: string | null;
   notes: string | null;
+  hasPortal: boolean;
+  portalToken: string | null;
   createdAt: string;
   _count?: { projects: number; invoices: number };
 }
@@ -103,6 +105,7 @@ interface ClientsState {
     data: Partial<Client>,
   ) => Promise<{ error?: string }>;
   deleteClient: (id: string) => Promise<{ error?: string }>;
+  setClients: (clients: Client[], meta: PaginationMetadata | null) => void;
 }
 
 interface ProjectsState {
@@ -164,6 +167,8 @@ export const useDataStore = create<DataState>((set, get) => ({
   clientsMeta: null,
   isLoadingClients: true,
   clientsError: null,
+  setClients: (clients: Client[], meta: PaginationMetadata | null) =>
+    set({ clients, clientsMeta: meta, clientsError: null }),
 
   fetchClients: async (params = {}) => {
     // Only show loading skeleton on first fetch (data not yet loaded)
