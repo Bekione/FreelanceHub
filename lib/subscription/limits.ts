@@ -7,6 +7,7 @@ export const FREE_LIMITS = {
   attachmentsPerProject: 5,
   maxAttachmentSizeMB: 5,
   totalStorageMB: 50,
+  portals: 1, // 1 lifetime usage chance for Free users
 } as const;
 
 export type LimitResource = "clients" | "projects" | "invoices" | "attachments";
