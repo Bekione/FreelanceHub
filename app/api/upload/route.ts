@@ -232,12 +232,42 @@ export async function POST(req: Request) {
       });
     } else if (intent === "attachment") {
       const projectId = formData.get("projectId") as string;
+
+      const mime = file.type;
+      const lowerName = file.name.toLowerCase();
+      let category = "other";
+      if (
+        mime.startsWith("image/") ||
+        mime.includes("pdf") ||
+        lowerName.endsWith(".fig") ||
+        lowerName.endsWith(".psd")
+      ) {
+        category = "design";
+      } else if (
+        mime.startsWith("text/") ||
+        mime.includes("json") ||
+        lowerName.endsWith(".zip") ||
+        lowerName.endsWith(".js") ||
+        lowerName.endsWith(".ts")
+      ) {
+        category = "code";
+      } else if (
+        mime.includes("document") ||
+        mime.includes("msword") ||
+        lowerName.includes("doc")
+      ) {
+        category = "document";
+      } else if (mime.startsWith("video/") || mime.startsWith("audio/")) {
+        category = "media";
+      }
+
       const attachment = await prisma.attachment.create({
         data: {
           name: file.name,
           url: uploadResponse.secure_url,
           size: file.size,
-          mimeType: file.type,
+          mimeType: mime,
+          category,
           projectId,
         },
       });
