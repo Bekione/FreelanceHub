@@ -37,6 +37,8 @@ export async function PATCH(req: Request) {
     "phone",
     "hourlyRate",
     "currency",
+    "theme",
+    "dateFormat",
   ];
   const allowed = [...allowedBrandingFields, ...allowedPrefFields];
 

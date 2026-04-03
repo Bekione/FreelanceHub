@@ -330,7 +330,7 @@ export function ProfileContent() {
 
   const handleRemoveAvatar = async () => {
     setIsRemovingAvatar(true);
-    const { error } = await authClient.updateUser({ image: "" });
+    const { error } = await authClient.updateUser({ image: null });
     setIsRemovingAvatar(false);
 
     if (error) {
@@ -389,7 +389,7 @@ export function ProfileContent() {
                 <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-border/50">
                   <Avatar className="h-24 w-24 border-4 border-background shadow-xl">
                     <AvatarImage
-                      src={user?.image || ""}
+                      src={user?.image || undefined}
                       alt={user?.name || "User"}
                     />
                     <AvatarFallback className="text-2xl bg-primary/5 text-primary">

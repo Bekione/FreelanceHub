@@ -116,6 +116,8 @@ model Profile {
   invoicePrefix    String?  @default("INV-")
 
   // User Preferences
+  theme              String  @default("system")
+  dateFormat         String  @default("MM/DD/YYYY")
   autoCreateInvoice  Boolean @default(false)
   defaultCurrency    String  @default("USD")
   timezone           String  @default("UTC")
@@ -160,6 +162,7 @@ model Project {
   bonus       Float?        @default(0)
   // Platform tag — where the job came from
   platform    String?       // e.g. "upwork", "fiverr", "local", "remotive"
+  category    String?       @default("other") // "development", "design", "copywriting", "video", "other"
   userId      String
   clientId    String?
   createdAt   DateTime      @default(now())
@@ -229,6 +232,7 @@ model Attachment {
   url       String
   size      Int
   mimeType  String?
+  category  String?  @default("other") // "code", "design", "document", "media", "other"
   projectId String
   createdAt DateTime @default(now())
 

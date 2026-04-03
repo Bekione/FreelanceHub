@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "@/lib/auth-client";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
+import { useTheme } from "next-themes";
 import {
   User,
   CreditCard,
@@ -22,6 +23,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -125,8 +133,14 @@ export function SettingsContent() {
   const [invoicePrefix, setInvoicePrefix] = useState("INV-");
   const [brandLogoUrl, setBrandLogoUrl] = useState("");
 
-  // Pref local state
+  // Preferences local state
   const [autoCreateInvoice, setAutoCreateInvoice] = useState(false);
+  const [themePref, setThemePref] = useState("system");
+  const [currencyPref, setCurrencyPref] = useState("USD");
+  const [timezonePref, setTimezonePref] = useState("UTC");
+  const [dateFormatPref, setDateFormatPref] = useState("MM/DD/YYYY");
+
+  const { setTheme } = useTheme();
 
   // Sync tab state to URL
   const updateUrl = useCallback(() => {
@@ -161,6 +175,10 @@ export function SettingsContent() {
         if (d.brandLogoUrl) setBrandLogoUrl(d.brandLogoUrl);
         if (d.autoCreateInvoice !== undefined)
           setAutoCreateInvoice(d.autoCreateInvoice);
+        if (d.theme) setThemePref(d.theme);
+        if (d.defaultCurrency) setCurrencyPref(d.defaultCurrency);
+        if (d.timezone) setTimezonePref(d.timezone);
+        if (d.dateFormat) setDateFormatPref(d.dateFormat);
       });
   }, []);
 
@@ -203,7 +221,16 @@ export function SettingsContent() {
 
   const handleUpdatePref = async (key: string, value: any) => {
     setIsSavingPref(true);
+
     if (key === "autoCreateInvoice") setAutoCreateInvoice(value);
+    if (key === "theme") {
+      setThemePref(value);
+      setTheme(value); // Apply to next-themes immediately
+    }
+    if (key === "defaultCurrency") setCurrencyPref(value);
+    if (key === "timezone") setTimezonePref(value);
+    if (key === "dateFormat") setDateFormatPref(value);
+
     try {
       const res = await fetch("/api/settings/profile", {
         method: "PATCH",
@@ -411,6 +438,120 @@ export function SettingsContent() {
                     }
                     disabled={isSavingPref}
                   />
+                </div>
+
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">
+                      Appearance / Theme
+                    </Label>
+                    <p className="text-xs text-muted-foreground mr-6">
+                      Customize how FreelanceHub looks on your device.
+                    </p>
+                  </div>
+                  <Select
+                    value={themePref}
+                    onValueChange={(val) => handleUpdatePref("theme", val)}
+                    disabled={isSavingPref}
+                  >
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue placeholder="Theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="dark">Dark</SelectItem>
+                      <SelectItem value="system">System Mode</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">
+                      Default Currency
+                    </Label>
+                    <p className="text-xs text-muted-foreground mr-6">
+                      The primary currency used when generating your invoices.
+                    </p>
+                  </div>
+                  <Select
+                    value={currencyPref}
+                    onValueChange={(val) =>
+                      handleUpdatePref("defaultCurrency", val)
+                    }
+                    disabled={isSavingPref}
+                  >
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue placeholder="Currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="GBP">GBP (£)</SelectItem>
+                      <SelectItem value="ETB">ETB (Br)</SelectItem>
+                      <SelectItem value="CAD">CAD ($)</SelectItem>
+                      <SelectItem value="AUD">AUD ($)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Timezone</Label>
+                    <p className="text-xs text-muted-foreground mr-6">
+                      Used for project deadlines and invoice issue dates.
+                    </p>
+                  </div>
+                  <Select
+                    value={timezonePref}
+                    onValueChange={(val) => handleUpdatePref("timezone", val)}
+                    disabled={isSavingPref}
+                  >
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue placeholder="Timezone" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UTC">UTC (Default)</SelectItem>
+                      <SelectItem value="America/New_York">
+                        Eastern Time (US)
+                      </SelectItem>
+                      <SelectItem value="America/Chicago">
+                        Central Time (US)
+                      </SelectItem>
+                      <SelectItem value="America/Los_Angeles">
+                        Pacific Time (US)
+                      </SelectItem>
+                      <SelectItem value="Europe/London">London (UK)</SelectItem>
+                      <SelectItem value="Europe/Berlin">
+                        Central Europe
+                      </SelectItem>
+                      <SelectItem value="Asia/Dubai">Dubai</SelectItem>
+                      <SelectItem value="Asia/Tokyo">Tokyo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Date Format</Label>
+                    <p className="text-xs text-muted-foreground mr-6">
+                      How dates should be presented across the application.
+                    </p>
+                  </div>
+                  <Select
+                    value={dateFormatPref}
+                    onValueChange={(val) => handleUpdatePref("dateFormat", val)}
+                    disabled={isSavingPref}
+                  >
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue placeholder="Date Format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                      <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                      <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
             </Card>
