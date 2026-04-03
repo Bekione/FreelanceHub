@@ -134,6 +134,7 @@ model Client {
   company   String?
   phone     String?
   notes     String?
+  imageUrl  String?   // Client profile photo (Cloudinary URL)
   userId    String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt

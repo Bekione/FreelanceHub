@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -21,6 +21,7 @@ import {
   Globe,
   Link,
   Loader2 as SpinnerLoader,
+  Camera,
 } from "lucide-react";
 import { useDataStore, type Client } from "@/store/data-store";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -52,7 +53,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -90,6 +91,11 @@ export function ClientsContent() {
     "clients",
   );
   const [isTogglingPortal, setIsTogglingPortal] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [photoChanged, setPhotoChanged] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: session } = useSession();
   const isPro =
@@ -125,6 +131,7 @@ export function ClientsContent() {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { isDirty, isSubmitting },
   } = useForm({
     defaultValues: emptyForm,
@@ -151,11 +158,17 @@ export function ClientsContent() {
 
   const openCreate = () => {
     setEditingClient(null);
+    setPhotoPreview(null);
+    setUploadedImageUrl(null);
+    setPhotoChanged(false);
     reset(emptyForm);
     setIsFormOpen(true);
   };
   const openEdit = (client: Client) => {
     setEditingClient(client);
+    setPhotoPreview((client as any).imageUrl ?? null);
+    setUploadedImageUrl((client as any).imageUrl ?? null);
+    setPhotoChanged(false);
     reset({
       name: client.name,
       email: client.email ?? "",
@@ -170,10 +183,57 @@ export function ClientsContent() {
     setIsDeleteOpen(true);
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Use absolute local URL for smooth, flicker-free preview immediately
+    const objectUrl = URL.createObjectURL(file);
+    setPhotoPreview(objectUrl);
+    setPhotoChanged(true); // Allow saving
+    setIsUploadingPhoto(true);
+
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("intent", "clientPhoto");
+      if (editingClient) form.append("clientId", editingClient.id);
+
+      const res = await fetch("/api/upload?intent=clientPhoto", {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Photo upload failed");
+        setPhotoPreview((editingClient as any)?.imageUrl ?? null);
+        setPhotoChanged(false);
+      } else {
+        setUploadedImageUrl(data.url);
+        // If editing an existing client, the upload route already persisted it to DB!
+        // We can immediately reflect it in the global state so the cards update behind the modal.
+        if (editingClient) {
+          setClients(
+            clients.map((c) =>
+              c.id === editingClient.id ? { ...c, imageUrl: data.url } : c,
+            ),
+            clientsMeta,
+          );
+        }
+      }
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
   const onSubmit = async (data: typeof emptyForm) => {
+    // For new clients, attach the uploaded photo URL to the create payload
+    const payload: typeof emptyForm & { imageUrl?: string } = { ...data };
+    if (!editingClient && uploadedImageUrl) payload.imageUrl = uploadedImageUrl;
     const result = editingClient
-      ? await updateClient(editingClient.id, data)
-      : await createClient(data);
+      ? await updateClient(editingClient.id, payload)
+      : await createClient(payload);
     if (result.error) {
       if ((result as any).code === "UPGRADE_REQUIRED") {
         setIsFormOpen(false);
@@ -372,6 +432,13 @@ export function ClientsContent() {
                     <CardHeader className="pb-4 flex-none">
                       <div className="flex items-start gap-4">
                         <Avatar className="h-10 w-10 border-2 border-primary/10 shrink-0">
+                          {(client as any).imageUrl && (
+                            <AvatarImage
+                              src={(client as any).imageUrl}
+                              alt={client.name}
+                              className="object-cover"
+                            />
+                          )}
                           <AvatarFallback className="bg-primary/5 text-primary font-semibold">
                             {client.name
                               .split(" ")
@@ -434,7 +501,7 @@ export function ClientsContent() {
 
                       <div className="mt-auto border-t border-border/50 flex justify-between items-center pt-4">
                         {client._count && (
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground pt-3">
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span
                               className="flex items-center gap-1"
                               title={
@@ -598,6 +665,44 @@ export function ClientsContent() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+              {/* Photo picker */}
+              <div className="flex justify-center">
+                <div className="relative group">
+                  <Avatar
+                    className="h-20 w-20 border-2 border-primary/20 cursor-pointer"
+                    onClick={() => photoInputRef.current?.click()}
+                  >
+                    {photoPreview && (
+                      <AvatarImage
+                        src={photoPreview}
+                        alt="Client"
+                        className="object-cover"
+                      />
+                    )}
+                    <AvatarFallback className="bg-primary/5 text-primary text-xl font-semibold">
+                      {watch("name")?.charAt(0)?.toUpperCase() || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                  >
+                    {isUploadingPhoto ? (
+                      <Loader2 className="h-5 w-5 text-white animate-spin" />
+                    ) : (
+                      <Camera className="h-5 w-5 text-white" />
+                    )}
+                  </button>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-2">
                   <Label htmlFor="name">Full Name *</Label>
@@ -651,7 +756,14 @@ export function ClientsContent() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting || !isDirty}>
+                <Button
+                  type="submit"
+                  disabled={
+                    isSubmitting ||
+                    isUploadingPhoto ||
+                    (!isDirty && !photoChanged)
+                  }
+                >
                   {isSubmitting && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}

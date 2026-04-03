@@ -9,6 +9,7 @@ import { FREE_LIMITS, isPro } from "@/lib/subscription/limits";
 const INTENT_LIMITS = {
   avatar: 5,
   brandLogo: 5,
+  clientPhoto: 5,
   attachment: FREE_LIMITS.maxAttachmentSizeMB,
 };
 
@@ -61,7 +62,9 @@ export async function POST(req: Request) {
 
     // Type validation for images
     if (
-      (intent === "avatar" || intent === "brandLogo") &&
+      (intent === "avatar" ||
+        intent === "brandLogo" ||
+        intent === "clientPhoto") &&
       !file.type.startsWith("image/")
     ) {
       return NextResponse.json(
@@ -158,6 +161,19 @@ export async function POST(req: Request) {
       resourceType = "image";
     }
 
+    // ─── Client Photo Context ────────────────────────────────────────
+    if (intent === "clientPhoto") {
+      const clientId = formData.get("clientId") as string | null;
+      if (!clientId)
+        return NextResponse.json(
+          { error: "clientId is required for clientPhoto intent" },
+          { status: 400 },
+        );
+      cloudinaryFolder = `${baseFolder}/client-photos`;
+      publicId = `client_${clientId}_photo`;
+      resourceType = "image";
+    }
+
     // ─── Execute Cloudinary Upload ─────────────────────────────────
     const arrayBuffer = await file.arrayBuffer();
     const base64Data = `data:${file.type || "application/octet-stream"};base64,${Buffer.from(arrayBuffer).toString("base64")}`;
@@ -198,6 +214,21 @@ export async function POST(req: Request) {
           userId: session.user.id,
           brandLogoUrl: uploadResponse.secure_url,
         },
+      });
+    } else if (intent === "clientPhoto") {
+      const clientId = formData.get("clientId") as string;
+      // Verify ownership before updating
+      const client = await prisma.client.findFirst({
+        where: { id: clientId, userId: session.user.id },
+      });
+      if (!client)
+        return NextResponse.json(
+          { error: "Client not found" },
+          { status: 404 },
+        );
+      await prisma.client.update({
+        where: { id: clientId },
+        data: { imageUrl: uploadResponse.secure_url },
       });
     } else if (intent === "attachment") {
       const projectId = formData.get("projectId") as string;

@@ -13,7 +13,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { name, email, company, phone, notes } = body;
+  const { name, email, company, phone, notes, imageUrl } = body;
 
   const client = await prisma.client.findUnique({ where: { id } });
   if (!client || client.userId !== session.user.id) {
@@ -22,7 +22,7 @@ export async function PATCH(
 
   const updated = await prisma.client.update({
     where: { id },
-    data: { name, email, company, phone, notes },
+    data: { name, email, company, phone, notes, imageUrl },
   });
 
   return NextResponse.json(updated);
