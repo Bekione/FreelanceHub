@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { AppHeader } from "./header";
 
-export function DashboardLayout({ children }: { children: React.ReactNode }) {
+export function DashboardLayout({
+  children,
+  version,
+}: {
+  children: React.ReactNode;
+  version?: string;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -19,7 +25,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} version={version} />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">

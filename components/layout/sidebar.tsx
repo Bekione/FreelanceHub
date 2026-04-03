@@ -22,6 +22,7 @@ import { useSession } from "@/lib/auth-client";
 interface SidebarProps {
   open: boolean;
   setOpen: (open: boolean) => void;
+  version?: string;
 }
 
 const navigation = [
@@ -34,10 +35,11 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function Sidebar({ open, setOpen }: SidebarProps) {
+export function Sidebar({ open, setOpen, version }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const isPro = (session?.user as { plan?: string })?.plan === "pro";
+  const versionLabel = version ? `v${version}` : "FreelanceHub";
 
   return (
     <>
@@ -121,7 +123,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
           {isPro ? (
             <div className="flex items-center justify-between">
               <span className="text-xs text-sidebar-foreground/40">
-                FreelanceHub v1.0
+                FreelanceHub {versionLabel}
               </span>
               <span className="flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                 <Zap className="h-3 w-3" />
