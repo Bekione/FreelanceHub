@@ -99,7 +99,7 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
                   }
                 }}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
+                  "flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all duration-150",
                   isActive
                     ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
                     : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
@@ -137,7 +137,7 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
               </p>
               <Link
                 href="/checkout"
-                className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
               >
                 <Zap className="h-3.5 w-3.5" />
                 Upgrade to Pro — $5/mo
