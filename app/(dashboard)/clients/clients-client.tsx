@@ -18,6 +18,9 @@ import {
   Search,
   X,
   Zap,
+  Globe,
+  Link,
+  Loader2 as SpinnerLoader,
 } from "lucide-react";
 import { useDataStore, type Client } from "@/store/data-store";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -64,6 +67,7 @@ export function ClientsContent() {
     createClient,
     updateClient,
     deleteClient,
+    setClients,
   } = useDataStore();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -82,6 +86,10 @@ export function ClientsContent() {
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeResource, setUpgradeResource] = useState<"clients" | "portals">(
+    "clients",
+  );
+  const [isTogglingPortal, setIsTogglingPortal] = useState<string | null>(null);
 
   const { data: session } = useSession();
   const isPro =
@@ -169,6 +177,7 @@ export function ClientsContent() {
     if (result.error) {
       if ((result as any).code === "UPGRADE_REQUIRED") {
         setIsFormOpen(false);
+        setUpgradeResource("clients");
         setShowUpgradeModal(true);
         return;
       }
@@ -193,371 +202,495 @@ export function ClientsContent() {
     setIsDeleteOpen(false);
   };
 
+  const handleTogglePortal = async (
+    client: Client,
+    action: "ENABLE" | "DISABLE",
+  ) => {
+    setIsTogglingPortal(client.id);
+    try {
+      const res = await fetch(`/api/clients/${client.id}/portal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.code === "UPGRADE_REQUIRED") {
+          setUpgradeResource("portals");
+          setShowUpgradeModal(true);
+        } else {
+          toast.error(data.error || "Failed to toggle portal");
+        }
+        setIsTogglingPortal(null);
+        return;
+      }
+
+      // Update local client array state directly
+      const updatedList = clients.map((c) =>
+        c.id === client.id
+          ? { ...c, hasPortal: data.hasPortal, portalToken: data.portalToken }
+          : c,
+      );
+      setClients(updatedList, clientsMeta);
+      toast.success(
+        action === "ENABLE"
+          ? "Client Portal generated"
+          : "Client Portal disabled",
+      );
+    } catch (e) {
+      toast.error("An error occurred toggling the portal");
+    } finally {
+      setIsTogglingPortal(null);
+    }
+  };
+
+  const copyPortalLink = (client: Client) => {
+    if (!client.portalToken) return;
+    const url = `${window.location.origin}/portal/${client.id}/${client.portalToken}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Portal link copied to clipboard");
+  };
+
   const totalClients = clientsMeta?.totalItems ?? clients.length;
   const atLimit = !isLoadingClients && totalClients >= FREE_LIMITS.clients;
 
   return (
-    <div className="space-y-6">
+    <>
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        resource="clients"
+        resource={upgradeResource}
       />
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold font-heading">Clients</h2>
-          <p className="text-muted-foreground mt-1">
-            Manage your client relationships and contact information.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Usage indicator for Free users */}
-          {!isLoadingClients && clientsMeta && !isPro && (
-            <div className="hidden sm:flex flex-col items-end gap-1">
-              <span className="text-xs text-muted-foreground">
-                {totalClients} / {FREE_LIMITS.clients} clients used
-              </span>
-              <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all rounded-full ${
-                    atLimit ? "bg-destructive" : "bg-primary"
-                  }`}
-                  style={{
-                    width: `${Math.min((totalClients / FREE_LIMITS.clients) * 100, 100)}%`,
-                  }}
-                />
+      <div className="space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold font-heading">Clients</h2>
+            <p className="text-muted-foreground mt-1">
+              Manage your client relationships and contact information.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Usage indicator for Free users */}
+            {!isLoadingClients && clientsMeta && !isPro && (
+              <div className="hidden sm:flex flex-col items-end gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {totalClients} / {FREE_LIMITS.clients} clients used
+                </span>
+                <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all rounded-full ${
+                      atLimit ? "bg-destructive" : "bg-primary"
+                    }`}
+                    style={{
+                      width: `${Math.min((totalClients / FREE_LIMITS.clients) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-          <Button
-            onClick={
-              !isPro && atLimit ? () => setShowUpgradeModal(true) : openCreate
-            }
-          >
-            {!isPro && atLimit ? (
-              <>
-                <Zap className="mr-2 h-4 w-4" /> Upgrade for More
-              </>
-            ) : (
-              <>
-                <Plus className="mr-2 h-4 w-4" /> Add Client
-              </>
             )}
-          </Button>
+            <Button
+              onClick={
+                !isPro && atLimit
+                  ? () => {
+                      setUpgradeResource("clients");
+                      setShowUpgradeModal(true);
+                    }
+                  : openCreate
+              }
+            >
+              {!isPro && atLimit ? (
+                <>
+                  <Zap className="mr-2 h-4 w-4" /> Upgrade for More
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" /> Add Client
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="flex gap-4 items-center">
-        <div className="relative flex items-center flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search clients by name, company, or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 pr-9 flex-1"
-          />
-          <Button
-            className={`-ml-9 text-muted-foreground bg-transparent 
+        {/* Filters */}
+        <div className="flex gap-4 items-center">
+          <div className="relative flex items-center flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search clients by name, company, or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-9 flex-1"
+            />
+            <Button
+              className={`-ml-9 text-muted-foreground bg-transparent 
               hover:text-foreground hover:bg-muted transition-colors
               ${searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-            onClick={() => setSearchTerm("")}
-            size="xs"
-            aria-label="Clear search"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+              onClick={() => setSearchTerm("")}
+              size="xs"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {isLoadingClients ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="h-full flex flex-col">
-              <CardHeader className="pb-4">
-                <div className="flex items-start gap-4">
-                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                  <div className="flex-1 space-y-2 pt-1">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3 pt-0 flex-1 flex flex-col justify-end">
-                <Skeleton className="h-4 w-full mr-4" />
-                <Skeleton className="h-4 w-4/5" />
-                <div className="pt-2 border-t border-border/50">
-                  <Skeleton className="h-4 w-32" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {clients.length > 0 ? (
-            clients.map((client, index) => (
-              <motion.div
-                key={client.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Card className="h-full group hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start gap-4">
-                      <Avatar className="h-10 w-10 border-2 border-primary/10 shrink-0">
-                        <AvatarFallback className="bg-primary/5 text-primary font-semibold">
-                          {client.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0 space-y-0.5">
-                        <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors truncate">
-                          {client.name}
-                        </CardTitle>
-                        <CardDescription className="flex items-center gap-1">
-                          <Building className="h-3 w-3 shrink-0" />
-                          <span className="truncate">
-                            {client.company || "—"}
-                          </span>
-                        </CardDescription>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => openEdit(client)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => openDelete(client)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+        {isLoadingClients ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="h-full flex flex-col">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start gap-4">
+                    <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                    <div className="flex-1 space-y-2 pt-1">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-1/2" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2.5 pt-0">
-                    {client.email && (
-                      <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                        <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                          <Mail className="h-3.5 w-3.5" />
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0 flex-1 flex flex-col justify-end">
+                  <Skeleton className="h-4 w-full mr-4" />
+                  <Skeleton className="h-4 w-4/5" />
+                  <div className="pt-2 border-t border-border/50">
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {clients.length > 0 ? (
+              clients.map((client, index) => (
+                <motion.div
+                  key={client.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  <Card className="h-full group hover:shadow-md transition-shadow flex flex-col bg-card overflow-hidden border-border/50">
+                    <CardHeader className="pb-4 flex-none">
+                      <div className="flex items-start gap-4">
+                        <Avatar className="h-10 w-10 border-2 border-primary/10 shrink-0">
+                          <AvatarFallback className="bg-primary/5 text-primary font-semibold">
+                            {client.name
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0 space-y-0.5">
+                          <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors truncate">
+                            {client.name}
+                          </CardTitle>
+                          <CardDescription className="flex items-center gap-1">
+                            <Building className="h-3 w-3 shrink-0" />
+                            <span className="truncate">
+                              {client.company || "—"}
+                            </span>
+                          </CardDescription>
                         </div>
-                        <span className="truncate">{client.email}</span>
-                      </div>
-                    )}
-                    {client.phone && (
-                      <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                        <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                          <Phone className="h-3.5 w-3.5" />
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => openEdit(client)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => openDelete(client)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
-                        <span>{client.phone}</span>
                       </div>
-                    )}
-                    {client._count && (
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground pt-1 border-t border-border/50">
-                        <span className="flex items-center gap-1">
-                          <FolderOpen className="h-3 w-3" />
-                          {client._count.projects} projects
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <FileText className="h-3 w-3" />
-                          {client._count.invoices} invoices
-                        </span>
+                    </CardHeader>
+                    <CardContent className="space-y-4 flex flex-col flex-1 px-4 ">
+                      <div className="space-y-2.5">
+                        {client.email && (
+                          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                            <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                              <Mail className="h-3.5 w-3.5" />
+                            </div>
+                            <span className="truncate">{client.email}</span>
+                          </div>
+                        )}
+                        {client.phone && (
+                          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                            <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                              <Phone className="h-3.5 w-3.5" />
+                            </div>
+                            <span>{client.phone}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))
-          ) : debouncedSearch !== "" ? (
-            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
-              <Search className="h-10 w-10 text-muted-foreground/30" />
-              <p className="text-lg font-medium text-foreground">
-                No matching clients found
-              </p>
-              <p className="text-sm text-muted-foreground max-w-sm text-center">
-                We couldn&apos;t find anything matching "{debouncedSearch}". Try
-                adjusting your query.
-              </p>
-              <Button
-                variant="ghost"
-                className="mt-2"
-                onClick={() => setSearchTerm("")}
-              >
-                Clear Search
-              </Button>
-            </div>
-          ) : (
-            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
-              <UserPlus className="h-10 w-10 text-muted-foreground/50" />
-              <p className="text-lg font-medium text-muted-foreground">
-                No clients yet
-              </p>
-              <p className="text-sm text-muted-foreground/60">
-                Start adding clients to your network!
-              </p>
-              <Button variant="outline" className="mt-4" onClick={openCreate}>
-                <Plus className="mr-2 h-4 w-4" /> Add Your First Client
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
 
-      {/* Pagination Controls */}
-      {clientsMeta && clientsMeta.totalPages > 1 && (
-        <div className="py-4 flex justify-center border-t border-border/50">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className={
-                    currentPage === 1
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <span className="text-sm text-muted-foreground px-4 py-2 font-medium">
-                  Page {clientsMeta.currentPage} of {clientsMeta.totalPages}
-                </span>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() =>
-                    setCurrentPage((p) =>
-                      Math.min(clientsMeta.totalPages, p + 1),
-                    )
-                  }
-                  className={
-                    currentPage === clientsMeta.totalPages
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
+                      <div className="mt-auto border-t border-border/50 flex justify-between items-center pt-4">
+                        {client._count && (
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground pt-3">
+                            <span
+                              className="flex items-center gap-1"
+                              title={
+                                client._count.projects.toString() + " Projects"
+                              }
+                            >
+                              <FolderOpen className="h-3 w-3" />
+                              {client._count.projects}
+                            </span>
+                            <span
+                              className="flex items-center gap-1"
+                              title={
+                                client._count.invoices.toString() + " Invoices"
+                              }
+                            >
+                              <FileText className="h-3 w-3" />
+                              {client._count.invoices}
+                            </span>
+                          </div>
+                        )}
 
-      {/* Create / Edit Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingClient ? "Edit Client" : "Add New Client"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingClient
-                ? "Update client details."
-                : "Add a new client to your contact list."}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="name">Full Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="John Doe"
-                  {...register("name", { required: true })}
-                />
+                        {/* Interactive Portal actions */}
+                        <div className="flex items-center gap-2">
+                          {client.hasPortal ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => copyPortalLink(client)}
+                                className="h-8 gap-1 text-primary hover:text-primary transition-colors"
+                              >
+                                <Link className="h-3.5 w-3.5" /> Copy Link
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleTogglePortal(client, "DISABLE")
+                                }
+                                disabled={isTogglingPortal === client.id}
+                                className="h-8 gap-1 text-destructive hover:text-destructive transition-colors border-destructive/20 hover:bg-destructive/10"
+                              >
+                                {isTogglingPortal === client.id ? (
+                                  <SpinnerLoader className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  "Disable"
+                                )}
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                handleTogglePortal(client, "ENABLE")
+                              }
+                              disabled={isTogglingPortal === client.id}
+                              className="h-8 gap-1 text-muted-foreground hover:text-foreground transition-colors bg-transparent"
+                            >
+                              {isTogglingPortal === client.id ? (
+                                <SpinnerLoader className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Globe className="h-3.5 w-3.5" /> Generate
+                                  Portal
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            ) : debouncedSearch !== "" ? (
+              <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+                <Search className="h-10 w-10 text-muted-foreground/30" />
+                <p className="text-lg font-medium text-foreground">
+                  No matching clients found
+                </p>
+                <p className="text-sm text-muted-foreground max-w-sm text-center">
+                  We couldn&apos;t find anything matching "{debouncedSearch}".
+                  Try adjusting your query.
+                </p>
+                <Button
+                  variant="ghost"
+                  className="mt-2"
+                  onClick={() => setSearchTerm("")}
+                >
+                  Clear Search
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="john@example.com"
-                  {...register("email")}
-                />
+            ) : (
+              <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+                <UserPlus className="h-10 w-10 text-muted-foreground/50" />
+                <p className="text-lg font-medium text-muted-foreground">
+                  No clients yet
+                </p>
+                <p className="text-sm text-muted-foreground/60">
+                  Start adding clients to your network!
+                </p>
+                <Button variant="outline" className="mt-4" onClick={openCreate}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Your First Client
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+1 (555) 000-0000"
-                  {...register("phone")}
-                />
+            )}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {clientsMeta && clientsMeta.totalPages > 1 && (
+          <div className="py-4 flex justify-center border-t border-border/50">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="text-sm text-muted-foreground px-4 py-2 font-medium">
+                    Page {clientsMeta.currentPage} of {clientsMeta.totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() =>
+                      setCurrentPage((p) =>
+                        Math.min(clientsMeta.totalPages, p + 1),
+                      )
+                    }
+                    className={
+                      currentPage === clientsMeta.totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
+
+        {/* Create / Edit Dialog */}
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogContent className="sm:max-w-[480px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingClient ? "Edit Client" : "Add New Client"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingClient
+                  ? "Update client details."
+                  : "Add a new client to your contact list."}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="name">Full Name *</Label>
+                  <Input
+                    id="name"
+                    placeholder="John Doe"
+                    {...register("name", { required: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="john@example.com"
+                    {...register("email")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+1 (555) 000-0000"
+                    {...register("phone")}
+                  />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="company">Company</Label>
+                  <Input
+                    id="company"
+                    placeholder="Acme Inc."
+                    {...register("company")}
+                  />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="notes">Notes</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Any additional info..."
+                    {...register("notes")}
+                    rows={3}
+                  />
+                </div>
               </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="company">Company</Label>
-                <Input
-                  id="company"
-                  placeholder="Acme Inc."
-                  {...register("company")}
-                />
-              </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Any additional info..."
-                  {...register("notes")}
-                  rows={3}
-                />
-              </div>
-            </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsFormOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting || !isDirty}>
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {editingClient ? "Save Changes" : "Add Client"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirm Dialog */}
+        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Delete Client</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete{" "}
+                <strong>{deletingClient?.name}</strong>? This action cannot be
+                undone.
+              </DialogDescription>
+            </DialogHeader>
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFormOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || !isDirty}>
-                {isSubmitting && (
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                {editingClient ? "Save Changes" : "Add Client"}
+                Delete Client
               </Button>
             </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirm Dialog */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Delete Client</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>{deletingClient?.name}</strong>? This action cannot be
-              undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete Client
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 }

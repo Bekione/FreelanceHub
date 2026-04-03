@@ -316,12 +316,13 @@ export function InvoicesContent() {
     !showSkeleton && totalInvoices >= FREE_LIMITS.invoicesPerMonth;
 
   return (
-    <div className="space-y-6">
-      <UpgradeModal
+    <>
+    <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         resource="invoices"
       />
+    <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold font-heading">Invoices</h2>
@@ -834,5 +835,6 @@ export function InvoicesContent() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }

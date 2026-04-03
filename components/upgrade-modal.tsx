@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  resource?: "clients" | "projects" | "invoices";
+  resource?: "clients" | "projects" | "invoices" | "portals";
   limit?: number;
 }
 
@@ -27,6 +27,11 @@ const RESOURCE_COPY: Record<string, { title: string; description: string }> = {
     title: "You've reached your monthly invoice limit",
     description:
       "Free accounts can create up to 20 invoices per month. Upgrade to Pro for unlimited invoices and custom branding.",
+  },
+  portals: {
+    title: "You've exhausted your free portal generation limit",
+    description:
+      "Free accounts can only generate a Client Portal once. Upgrade to Pro for unlimited, un-branded client portals.",
   },
   generic: {
     title: "This is a Pro feature",

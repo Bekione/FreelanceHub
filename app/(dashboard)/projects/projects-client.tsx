@@ -300,499 +300,508 @@ export function ProjectsContent() {
   const atLimit = !isLoadingProjects && totalProjects >= FREE_LIMITS.projects;
 
   return (
-    <div className="space-y-6">
+    <>
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         resource="projects"
       />
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-bold font-heading">Projects</h2>
-          <p className="text-muted-foreground mt-1">
-            Manage your client projects and track progress.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {!isLoadingProjects && projectsMeta && !isPro && (
-            <div className="hidden sm:flex flex-col items-end gap-1">
-              <span className="text-xs text-muted-foreground">
-                {totalProjects} / {FREE_LIMITS.projects} projects used
-              </span>
-              <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all rounded-full ${
-                    atLimit ? "bg-destructive" : "bg-primary"
-                  }`}
-                  style={{
-                    width: `${Math.min((totalProjects / FREE_LIMITS.projects) * 100, 100)}%`,
-                  }}
-                />
+      <div className="space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-bold font-heading">Projects</h2>
+            <p className="text-muted-foreground mt-1">
+              Manage your client projects and track progress.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {!isLoadingProjects && projectsMeta && !isPro && (
+              <div className="hidden sm:flex flex-col items-end gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {totalProjects} / {FREE_LIMITS.projects} projects used
+                </span>
+                <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all rounded-full ${
+                      atLimit ? "bg-destructive" : "bg-primary"
+                    }`}
+                    style={{
+                      width: `${Math.min((totalProjects / FREE_LIMITS.projects) * 100, 100)}%`,
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-          <Button
-            onClick={
-              !isPro && atLimit ? () => setShowUpgradeModal(true) : openCreate
-            }
-          >
-            {!isPro && atLimit ? (
-              <>
-                <Zap className="mr-2 h-4 w-4" /> Upgrade for More
-              </>
-            ) : (
-              <>
-                <Plus className="mr-2 h-4 w-4" /> Add Project
-              </>
             )}
-          </Button>
+            <Button
+              onClick={
+                !isPro && atLimit ? () => setShowUpgradeModal(true) : openCreate
+              }
+            >
+              {!isPro && atLimit ? (
+                <>
+                  <Zap className="mr-2 h-4 w-4" /> Upgrade for More
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" /> Add Project
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center">
-        <div className="relative flex items-center flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search projects..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 pr-9 flex-1"
-          />
-          <Button
-            className={`-ml-9 text-muted-foreground bg-transparent 
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative flex items-center flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search projects..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-9 flex-1"
+            />
+            <Button
+              className={`-ml-9 text-muted-foreground bg-transparent 
               hover:text-foreground hover:bg-muted transition-colors
               ${searchTerm ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-            onClick={() => setSearchTerm("")}
-            size="xs"
-            aria-label="Clear search"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+              onClick={() => setSearchTerm("")}
+              size="xs"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full sm:w-44">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Filter status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-full sm:w-44">
-            <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="Filter status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s.value} value={s.value}>
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
-      {isLoadingProjects && projects.length === 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="h-full flex flex-col">
-              <CardHeader className="pb-2">
-                <Skeleton className="h-6 w-3/4 mb-1" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardHeader>
-              <CardContent className="space-y-4 flex-1 flex flex-col justify-end">
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-4/5" />
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t border-border/50">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-16" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {projects.length > 0 ? (
-            projects.map((project, index) => (
-              <motion.div
-                key={project.id}
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.2, delay: index * 0.05 }}
-              >
-                <Card className="h-full group hover:shadow-md transition-shadow flex flex-col">
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0 pr-2">
-                        <CardTitle className="text-base leading-tight line-clamp-2 break-all">
-                          {project.title}
-                        </CardTitle>
-                        <CardDescription className="pt-0.5">
-                          {project.client?.name ?? "No client"}
-                        </CardDescription>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Badge
-                          variant={statusVariant(project.status)}
-                          className="capitalize text-xs"
-                        >
-                          {project.status.toLowerCase()}
-                        </Badge>
-                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => openEdit(project)}
+        {isLoadingProjects && projects.length === 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="h-full flex flex-col">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-6 w-3/4 mb-1" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardHeader>
+                <CardContent className="space-y-4 flex-1 flex flex-col justify-end">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-4/5" />
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-border/50">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {projects.length > 0 ? (
+              projects.map((project, index) => (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
+                  <Card className="h-full group hover:shadow-md transition-shadow flex flex-col">
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0 pr-2">
+                          <CardTitle className="text-base leading-tight line-clamp-2 break-all">
+                            {project.title}
+                          </CardTitle>
+                          <CardDescription className="pt-0.5">
+                            {project.client?.name ?? "No client"}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Badge
+                            variant={statusVariant(project.status)}
+                            className="capitalize text-xs"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => openDelete(project)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                            {project.status.toLowerCase()}
+                          </Badge>
+                          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => openEdit(project)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => openDelete(project)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 pt-0 flex-1 flex flex-col justify-between">
-                    <p className="text-sm text-muted-foreground line-clamp-2 min-h-10">
-                      {project.description || "No description."}
-                    </p>
-                    <div className="space-y-2">
-                      {project.platform && (
-                        <p className="text-xs text-muted-foreground">
-                          Via{" "}
-                          <span className="font-medium text-foreground">
-                            {project.platform}
-                          </span>
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between text-sm py-2 border-t border-border/50">
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                              {project.deadline
-                                ? new Date(
-                                    project.deadline,
-                                  ).toLocaleDateString()
-                                : "No deadline"}
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-0 flex-1 flex flex-col justify-between">
+                      <p className="text-sm text-muted-foreground line-clamp-2 min-h-10">
+                        {project.description || "No description."}
+                      </p>
+                      <div className="space-y-2">
+                        {project.platform && (
+                          <p className="text-xs text-muted-foreground">
+                            Via{" "}
+                            <span className="font-medium text-foreground">
+                              {project.platform}
                             </span>
-                          </div>
-                          {(project.attachments?.length ?? 0) > 0 && (
-                            <div
-                              className="flex items-center gap-1 text-muted-foreground"
-                              title={`${project.attachments?.length} attachments`}
-                            >
-                              <Paperclip className="h-3 w-3" />
-                              <span className="text-xs">
-                                {project.attachments?.length}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between text-sm py-2 border-t border-border/50">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Calendar className="h-4 w-4" />
+                              <span>
+                                {project.deadline
+                                  ? new Date(
+                                      project.deadline,
+                                    ).toLocaleDateString()
+                                  : "No deadline"}
                               </span>
                             </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 font-semibold text-foreground">
-                          <DollarSign className="h-4 w-4 text-green-600 dark:text-green-500" />
-                          <span>
-                            {project.budget
-                              ? project.budget.toLocaleString()
-                              : "—"}
-                          </span>
+                            {(project.attachments?.length ?? 0) > 0 && (
+                              <div
+                                className="flex items-center gap-1 text-muted-foreground"
+                                title={`${project.attachments?.length} attachments`}
+                              >
+                                <Paperclip className="h-3 w-3" />
+                                <span className="text-xs">
+                                  {project.attachments?.length}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 font-semibold text-foreground">
+                            <DollarSign className="h-4 w-4 text-green-600 dark:text-green-500" />
+                            <span>
+                              {project.budget
+                                ? project.budget.toLocaleString()
+                                : "—"}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))
-          ) : debouncedSearch !== "" || statusFilter !== "all" ? (
-            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
-              <Search className="h-10 w-10 text-muted-foreground/30" />
-              <p className="text-lg font-medium text-foreground">
-                No matching projects found
-              </p>
-              <p className="text-sm text-muted-foreground max-w-sm text-center">
-                We couldn&apos;t find anything matching your search. Try
-                adjusting your query or filters.
-              </p>
-              <Button
-                variant="ghost"
-                className="mt-2"
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("all");
-                }}
-              >
-                Clear Filters
-              </Button>
-            </div>
-          ) : (
-            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
-              <FolderOpen className="h-10 w-10 text-muted-foreground/50" />
-              <p className="text-lg font-medium text-muted-foreground">
-                No projects yet
-              </p>
-              <p className="text-sm text-muted-foreground/60">
-                Get started by creating your first project!
-              </p>
-              <Button variant="outline" className="mt-4" onClick={openCreate}>
-                <Plus className="mr-2 h-4 w-4" /> Add Your First Project
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Pagination Controls */}
-      {projectsMeta && projectsMeta.totalPages > 1 && (
-        <div className="py-4 flex justify-center border-t border-border/50">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className={
-                    currentPage === 1
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <span className="text-sm text-muted-foreground px-4 py-2 font-medium">
-                  Page {projectsMeta.currentPage} of {projectsMeta.totalPages}
-                </span>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() =>
-                    setCurrentPage((p) =>
-                      Math.min(projectsMeta.totalPages, p + 1),
-                    )
-                  }
-                  className={
-                    currentPage === projectsMeta.totalPages
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
-
-      {/* Create / Edit Dialog */}
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[540px]">
-          <DialogHeader>
-            <DialogTitle>
-              {editingProject ? "Edit Project" : "New Project"}
-            </DialogTitle>
-            <DialogDescription>
-              {editingProject
-                ? "Update project details."
-                : "Create a new project for your work."}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
-            <div className="max-h-[60vh] overflow-y-auto px-2 -mx-2 space-y-4 pb-1">
-              <div className="space-y-2">
-                <Label htmlFor="title">Project Title *</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g. Website Redesign"
-                  {...register("title", { required: true })}
-                />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))
+            ) : debouncedSearch !== "" || statusFilter !== "all" ? (
+              <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+                <Search className="h-10 w-10 text-muted-foreground/30" />
+                <p className="text-lg font-medium text-foreground">
+                  No matching projects found
+                </p>
+                <p className="text-sm text-muted-foreground max-w-sm text-center">
+                  We couldn&apos;t find anything matching your search. Try
+                  adjusting your query or filters.
+                </p>
+                <Button
+                  variant="ghost"
+                  className="mt-2"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("all");
+                  }}
+                >
+                  Clear Filters
+                </Button>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe the project goals..."
-                  {...register("description")}
-                  rows={3}
-                />
+            ) : (
+              <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+                <FolderOpen className="h-10 w-10 text-muted-foreground/50" />
+                <p className="text-lg font-medium text-muted-foreground">
+                  No projects yet
+                </p>
+                <p className="text-sm text-muted-foreground/60">
+                  Get started by creating your first project!
+                </p>
+                <Button variant="outline" className="mt-4" onClick={openCreate}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Your First Project
+                </Button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Client</Label>
-                  <Select
-                    value={watch("clientId")}
-                    onValueChange={(v) =>
-                      setValue("clientId", v === "none" ? "" : v, {
-                        shouldDirty: true,
-                      })
+            )}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {projectsMeta && projectsMeta.totalPages > 1 && (
+          <div className="py-4 flex justify-center border-t border-border/50">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No client</SelectItem>
-                      {clients.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select
-                    value={watch("status")}
-                    onValueChange={(v) =>
-                      setValue("status", v as ProjectStatus, {
-                        shouldDirty: true,
-                      })
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="text-sm text-muted-foreground px-4 py-2 font-medium">
+                    Page {projectsMeta.currentPage} of {projectsMeta.totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() =>
+                      setCurrentPage((p) =>
+                        Math.min(projectsMeta.totalPages, p + 1),
+                      )
                     }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    className={
+                      currentPage === projectsMeta.totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
+
+        {/* Create / Edit Dialog */}
+        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+          <DialogContent className="sm:max-w-[540px]">
+            <DialogHeader>
+              <DialogTitle>
+                {editingProject ? "Edit Project" : "New Project"}
+              </DialogTitle>
+              <DialogDescription>
+                {editingProject
+                  ? "Update project details."
+                  : "Create a new project for your work."}
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
+              <div className="max-h-[60vh] overflow-y-auto px-2 -mx-2 space-y-4 pb-1">
                 <div className="space-y-2">
-                  <Label htmlFor="deadline">Deadline</Label>
-                  <Input id="deadline" type="date" {...register("deadline")} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="budget">Budget ($)</Label>
+                  <Label htmlFor="title">Project Title *</Label>
                   <Input
-                    id="budget"
-                    type="number"
-                    placeholder="5000"
-                    {...register("budget")}
+                    id="title"
+                    placeholder="e.g. Website Redesign"
+                    {...register("title", { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="bonus">Bonus ($)</Label>
-                  <Input
-                    id="bonus"
-                    type="number"
-                    placeholder="0"
-                    {...register("bonus")}
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe the project goals..."
+                    {...register("description")}
+                    rows={3}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Platform</Label>
-                  <Select
-                    value={watch("platform")}
-                    onValueChange={(v) =>
-                      setValue("platform", v === "none" ? "" : v, {
-                        shouldDirty: true,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Where from?" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Not specified</SelectItem>
-                      {PLATFORM_OPTIONS.map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {p}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Client</Label>
+                    <Select
+                      value={watch("clientId")}
+                      onValueChange={(v) =>
+                        setValue("clientId", v === "none" ? "" : v, {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select client" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No client</SelectItem>
+                        {clients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select
+                      value={watch("status")}
+                      onValueChange={(v) =>
+                        setValue("status", v as ProjectStatus, {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="deadline">Deadline</Label>
+                    <Input
+                      id="deadline"
+                      type="date"
+                      {...register("deadline")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="budget">Budget ($)</Label>
+                    <Input
+                      id="budget"
+                      type="number"
+                      placeholder="5000"
+                      {...register("budget")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bonus">Bonus ($)</Label>
+                    <Input
+                      id="bonus"
+                      type="number"
+                      placeholder="0"
+                      {...register("bonus")}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Platform</Label>
+                    <Select
+                      value={watch("platform")}
+                      onValueChange={(v) =>
+                        setValue("platform", v === "none" ? "" : v, {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Where from?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Not specified</SelectItem>
+                        {PLATFORM_OPTIONS.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
+
+                {/* Hidden field for form dirtiness on attachment actions */}
+                <input type="hidden" {...register("attachmentsUpdated")} />
+
+                {/* Auto-draft invoice — only on create */}
+                {!editingProject && (
+                  <div className="flex items-center gap-3">
+                    <input
+                      id="createDraftInvoice"
+                      type="checkbox"
+                      className="h-4 w-4 accent-primary cursor-pointer"
+                      {...register("createDraftInvoice")}
+                    />
+                    <label
+                      htmlFor="createDraftInvoice"
+                      className="text-sm cursor-pointer select-none"
+                    >
+                      Auto-create a draft invoice for this project
+                    </label>
+                  </div>
+                )}
+
+                {/* Attachments Section — only for existing projects */}
+                {editingProject && (
+                  <div className="pt-4 border-t border-border mt-4">
+                    <ProjectAttachments
+                      projectId={editingProject.id}
+                      attachments={
+                        projects.find((p) => p.id === editingProject.id)
+                          ?.attachments || []
+                      }
+                      onAttachmentChange={() =>
+                        setValue("attachmentsUpdated", Date.now().toString(), {
+                          shouldDirty: true,
+                        })
+                      }
+                    />
+                  </div>
+                )}
               </div>
 
-              {/* Hidden field for form dirtiness on attachment actions */}
-              <input type="hidden" {...register("attachmentsUpdated")} />
+              <DialogFooter className="mt-4 pt-4 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsFormOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting || !isDirty}>
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {editingProject ? "Save Changes" : "Create Project"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
 
-              {/* Auto-draft invoice — only on create */}
-              {!editingProject && (
-                <div className="flex items-center gap-3">
-                  <input
-                    id="createDraftInvoice"
-                    type="checkbox"
-                    className="h-4 w-4 accent-primary cursor-pointer"
-                    {...register("createDraftInvoice")}
-                  />
-                  <label
-                    htmlFor="createDraftInvoice"
-                    className="text-sm cursor-pointer select-none"
-                  >
-                    Auto-create a draft invoice for this project
-                  </label>
-                </div>
-              )}
-
-              {/* Attachments Section — only for existing projects */}
-              {editingProject && (
-                <div className="pt-4 border-t border-border mt-4">
-                  <ProjectAttachments
-                    projectId={editingProject.id}
-                    attachments={
-                      projects.find((p) => p.id === editingProject.id)
-                        ?.attachments || []
-                    }
-                    onAttachmentChange={() =>
-                      setValue("attachmentsUpdated", Date.now().toString(), {
-                        shouldDirty: true,
-                      })
-                    }
-                  />
-                </div>
-              )}
-            </div>
-
-            <DialogFooter className="mt-4 pt-4 border-t border-border">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFormOpen(false)}
-              >
+        {/* Delete Confirm Dialog */}
+        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Delete Project</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete{" "}
+                <strong>{deletingProject?.title}</strong>? This cannot be
+                undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting || !isDirty}>
-                {isSubmitting && (
+              <Button
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                {editingProject ? "Save Changes" : "Create Project"}
+                Delete Project
               </Button>
             </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirm Dialog */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Delete Project</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>{deletingProject?.title}</strong>? This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Delete Project
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 }
