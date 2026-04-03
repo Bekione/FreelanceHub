@@ -21,6 +21,7 @@ export async function PATCH(
     budget,
     bonus,
     platform,
+    category,
     clientId,
   } = body;
 
@@ -39,6 +40,7 @@ export async function PATCH(
       budget: budget !== undefined ? parseFloat(budget) : undefined,
       bonus: bonus !== undefined ? parseFloat(bonus) : undefined,
       platform,
+      category,
       clientId: clientId || null,
     },
     include: {

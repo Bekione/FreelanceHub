@@ -85,6 +85,7 @@ export async function POST(req: Request) {
     budget,
     bonus,
     platform,
+    category,
     clientId,
   } = body;
 
@@ -99,8 +100,8 @@ export async function POST(req: Request) {
       deadline: deadline ? new Date(deadline) : null,
       budget: budget ? parseFloat(budget) : null,
       bonus: bonus ? parseFloat(bonus) : 0,
-      platform,
-      clientId: clientId || null,
+      platform: platform || null,
+      category: category || "other",
       userId: session.user.id,
     },
     include: {

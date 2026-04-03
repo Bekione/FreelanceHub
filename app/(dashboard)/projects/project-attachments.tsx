@@ -10,6 +10,10 @@ import {
   File,
   UploadCloud,
   Download,
+  PenTool,
+  Code,
+  FileText,
+  Video,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBytes } from "@/lib/utils";
@@ -25,9 +29,17 @@ const getFriendlyFiletype = (mimeType: string | null, filename: string) => {
   if (type.includes("pdf")) return "PDF";
   if (type.includes("zip")) return "ZIP";
   if (type.includes("image/")) return "IMAGE";
-  if (type.includes("text/")) return "TEXT";
-
   return filename.split(".").pop()?.toUpperCase() || "FILE";
+};
+
+const truncateMiddle = (str: string, maxLength: number = 30) => {
+  if (str.length <= maxLength) return str;
+  const charsToShow = maxLength - 3;
+  const frontChars = Math.ceil(charsToShow / 2);
+  const backChars = Math.floor(charsToShow / 2);
+  return (
+    str.substring(0, frontChars) + "..." + str.substring(str.length - backChars)
+  );
 };
 
 export function ProjectAttachments({
@@ -39,6 +51,20 @@ export function ProjectAttachments({
   attachments?: Attachment[];
   onAttachmentChange?: () => void;
 }) {
+  const getCategoryIcon = (category: string | null | undefined) => {
+    switch (category) {
+      case "design":
+        return <PenTool className="h-5 w-5" />;
+      case "code":
+        return <Code className="h-5 w-5" />;
+      case "document":
+        return <FileText className="h-5 w-5" />;
+      case "media":
+        return <Video className="h-5 w-5" />;
+      default:
+        return <File className="h-5 w-5" />;
+    }
+  };
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -181,17 +207,19 @@ export function ProjectAttachments({
             className="relative flex items-center justify-between p-3 border rounded-md group bg-card transition-colors hover:bg-muted/30"
           >
             <div className="flex items-center gap-3 overflow-hidden flex-1 min-w-0">
-              <div className="h-10 w-10 shrink-0 bg-primary/10 rounded-md flex items-center justify-center text-primary">
-                <File className="h-5 w-5" />
+              <div
+                className={`h-10 w-10 shrink-0 bg-primary/10 rounded-md flex items-center justify-center ${file.category === "design" ? "text-pink-500" : file.category === "code" ? "text-blue-500" : file.category === "document" ? "text-orange-500" : file.category === "media" ? "text-purple-500" : "text-primary"}`}
+              >
+                {getCategoryIcon(file.category)}
               </div>
               <div className="min-w-0 flex-1">
                 <a
                   href={file.url}
                   onClick={(e) => handleForceDownload(e, file.url, file.name)}
-                  className="text-sm font-medium hover:underline truncate block text-primary"
+                  className="text-sm font-medium hover:underline block text-primary"
                   title={file.name}
                 >
-                  {file.name}
+                  {truncateMiddle(file.name, 35)}
                 </a>
                 <p className="text-xs text-muted-foreground">
                   {formatBytes(file.size)}

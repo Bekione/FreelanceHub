@@ -21,6 +21,7 @@ export interface Attachment {
   url: string;
   size: number;
   mimeType: string | null;
+  category: string | null;
   projectId: string;
   createdAt: string;
 }
@@ -34,6 +35,7 @@ export interface Project {
   budget: number | null;
   bonus: number | null;
   platform: string | null;
+  category: string | null;
   clientId: string | null;
   client: { id: string; name: string; company: string | null } | null;
   createdAt: string;

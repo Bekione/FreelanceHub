@@ -15,8 +15,13 @@ import {
   Building,
   Link2,
   Building2,
+  PenTool,
+  Code,
+  Video,
+  File as FileIcon,
 } from "lucide-react";
 import Image from "next/image";
+import { PortalAttachment } from "@/components/portal/portal-attachment";
 
 // Server Component
 export default async function ClientPortalPage({
@@ -63,6 +68,32 @@ export default async function ClientPortalPage({
   const brandLogo = profile?.brandLogoUrl;
   const freelancerName = client.user.name;
   const freelancerImage = client.user.image;
+
+  const getCategoryIcon = (
+    category: string | null | undefined,
+    className = "h-4 w-4",
+    isFile = false,
+  ) => {
+    switch (category) {
+      case "design":
+        return <PenTool className={`${className} text-pink-500`} />;
+      case "development":
+      case "code":
+        return <Code className={`${className} text-blue-500`} />;
+      case "copywriting":
+      case "document":
+        return <FileText className={`${className} text-orange-500`} />;
+      case "video":
+      case "media":
+        return <Video className={`${className} text-purple-500`} />;
+      default:
+        return isFile ? (
+          <FileIcon className={`${className} text-muted-foreground`} />
+        ) : (
+          <FolderOpen className={`${className} text-primary`} />
+        );
+    }
+  };
 
   const activeProjects = client.projects.filter(
     (p) => p.status === "ACTIVE" || p.status === "PENDING",
@@ -123,7 +154,7 @@ export default async function ClientPortalPage({
             <span className="font-semibold text-lg">{freelancerName}</span>
           </div>
 
-          <div className="text-sm text-muted-foreground flex items-center gap-2 border border-border/50 bg-muted/30 px-3 py-1.5 rounded-full">
+          <div className="text-sm text-muted-foreground flex items-center gap-2 border border-border/50 bg-muted/30 px-3 py-1.5">
             <Building className="h-4 w-4" />
             Client Portal:{" "}
             <span className="font-medium text-foreground">{client.name}</span>
@@ -155,7 +186,7 @@ export default async function ClientPortalPage({
                     </p>
                   </div>
                   <div
-                    className="p-3 rounded-xl"
+                    className="p-3 "
                     style={{
                       backgroundColor: `${brandColor}15`,
                       color: brandColor,
@@ -181,7 +212,7 @@ export default async function ClientPortalPage({
                       }).format(totalOutstanding)}
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-destructive/10 text-destructive">
+                  <div className="p-3  bg-destructive/10 text-destructive">
                     <FileText className="h-5 w-5" />
                   </div>
                 </div>
@@ -199,7 +230,7 @@ export default async function ClientPortalPage({
                       {completedProjects.length + paidInvoices.length}
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-muted text-muted-foreground">
+                  <div className="p-3  bg-muted text-muted-foreground">
                     <Building2 className="h-5 w-5" />
                   </div>
                 </div>
@@ -217,7 +248,7 @@ export default async function ClientPortalPage({
             </h2>
 
             {activeProjects.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed border-border/50 rounded-xl text-muted-foreground">
+              <div className="text-center py-12 border-2 border-dashed border-border/50 text-muted-foreground">
                 No active projects right now.
               </div>
             ) : (
@@ -234,7 +265,8 @@ export default async function ClientPortalPage({
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle className="text-xl">
+                          <CardTitle className="text-xl flex items-center gap-2">
+                            {getCategoryIcon(project.category, "h-5 w-5")}
                             {project.title}
                           </CardTitle>
                           {project.description && (
@@ -256,17 +288,15 @@ export default async function ClientPortalPage({
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {project.attachments.map((att) => (
-                              <a
+                              <PortalAttachment
                                 key={att.id}
-                                href={`/api/attachments/${att.id}/download`}
-                                download
-                                className="flex items-center gap-2 px-3 py-2 bg-muted/40 hover:bg-muted/80 transition-colors border border-border/40 rounded-lg text-sm group"
-                              >
-                                <Download className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-                                <span className="font-medium truncate max-w-[200px]">
-                                  {att.name}
-                                </span>
-                              </a>
+                                att={att}
+                                icon={getCategoryIcon(
+                                  att.category,
+                                  "h-4 w-4",
+                                  true,
+                                )}
+                              />
                             ))}
                           </div>
                         </div>

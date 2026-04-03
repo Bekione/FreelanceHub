@@ -17,6 +17,10 @@ import {
   X,
   Zap,
   Paperclip,
+  PenTool,
+  Code,
+  FileText,
+  Video,
 } from "lucide-react";
 import { useDataStore, type Project } from "@/store/data-store";
 import { UpgradeModal } from "@/components/upgrade-modal";
@@ -79,6 +83,14 @@ const PLATFORM_OPTIONS = [
   "Other",
 ];
 
+const PROJECT_CATEGORIES = [
+  { value: "development", label: "Development / Code" },
+  { value: "design", label: "Design / UI" },
+  { value: "copywriting", label: "Copywriting / Writing" },
+  { value: "video", label: "Video / Media" },
+  { value: "other", label: "Other" },
+];
+
 function statusVariant(status: ProjectStatus) {
   switch (status) {
     case "ACTIVE":
@@ -92,6 +104,21 @@ function statusVariant(status: ProjectStatus) {
   }
 }
 
+const getProjectCategoryIcon = (category: string | null | undefined) => {
+  switch (category) {
+    case "design":
+      return <PenTool className="h-5 w-5 text-pink-500" />;
+    case "development":
+      return <Code className="h-5 w-5 text-blue-500" />;
+    case "copywriting":
+      return <FileText className="h-5 w-5 text-orange-500" />;
+    case "video":
+      return <Video className="h-5 w-5 text-purple-500" />;
+    default:
+      return <FolderOpen className="h-5 w-5 text-primary" />;
+  }
+};
+
 const emptyForm = {
   title: "",
   description: "",
@@ -100,6 +127,7 @@ const emptyForm = {
   budget: "",
   bonus: "",
   platform: "",
+  category: "other",
   status: "PENDING" as ProjectStatus,
   createDraftInvoice: false,
   attachmentsUpdated: "",
@@ -226,10 +254,13 @@ export function ProjectsContent() {
       deadline: project.deadline
         ? new Date(project.deadline).toISOString().split("T")[0]
         : "",
-      budget: project.budget?.toString() ?? "",
-      bonus: project.bonus?.toString() ?? "",
-      platform: project.platform ?? "",
+      budget: project.budget ? project.budget.toString() : "",
+      bonus: project.bonus ? project.bonus.toString() : "",
+      platform: project.platform || "",
+      category: project.category || "other",
       status: project.status,
+      createDraftInvoice: false,
+      attachmentsUpdated: "",
     });
     setIsFormOpen(true);
   };
@@ -320,9 +351,9 @@ export function ProjectsContent() {
                 <span className="text-xs text-muted-foreground">
                   {totalProjects} / {FREE_LIMITS.projects} projects used
                 </span>
-                <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="w-32 h-1.5 bg-muted overflow-hidden">
                   <div
-                    className={`h-full transition-all rounded-full ${
+                    className={`h-full transition-all ${
                       atLimit ? "bg-destructive" : "bg-primary"
                     }`}
                     style={{
@@ -418,25 +449,20 @@ export function ProjectsContent() {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.2, delay: index * 0.05 }}
                 >
-                  <Card className="h-full group hover:shadow-md transition-shadow flex flex-col">
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0 pr-2">
-                          <CardTitle className="text-base leading-tight line-clamp-2 break-all">
-                            {project.title}
-                          </CardTitle>
-                          <CardDescription className="pt-0.5">
-                            {project.client?.name ?? "No client"}
-                          </CardDescription>
+                  <Card className="h-full group hover:shadow-md transition-shadow flex flex-col relative">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="h-10 w-10 shrink-0 bg-primary/10 flex items-center justify-center">
+                          {getProjectCategoryIcon(project.category)}
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-2">
                           <Badge
                             variant={statusVariant(project.status)}
-                            className="capitalize text-xs"
+                            className="capitalize text-xs shrink-0"
                           >
                             {project.status.toLowerCase()}
                           </Badge>
-                          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-muted/90 backdrop-blur-sm border shadow-sm z-10 p-0.5">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -455,6 +481,18 @@ export function ProjectsContent() {
                             </Button>
                           </div>
                         </div>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <CardTitle
+                          className="text-base leading-tight line-clamp-2 break-all pr-2"
+                          title={project.title}
+                        >
+                          {project.title}
+                        </CardTitle>
+                        <CardDescription className="pt-1 truncate">
+                          {project.client?.name ?? "No client"}
+                        </CardDescription>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4 pt-0 flex-1 flex flex-col justify-between">
@@ -707,6 +745,28 @@ export function ProjectsContent() {
                         {PLATFORM_OPTIONS.map((p) => (
                           <SelectItem key={p} value={p}>
                             {p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Select
+                      value={watch("category")}
+                      onValueChange={(v) =>
+                        setValue("category", v, {
+                          shouldDirty: true,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Project scope" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROJECT_CATEGORIES.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>
+                            {c.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
