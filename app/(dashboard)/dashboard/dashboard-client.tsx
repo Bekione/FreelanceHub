@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import RevenueChart from "@/components/charts/revenue-chart";
+import { DashboardInsights } from "@/components/dashboard/dashboard-insights";
 
 function statusVariant(status: string) {
   switch (status) {
@@ -123,29 +123,8 @@ export function DashboardContent() {
         ))}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
-        {/* Revenue Chart */}
-        <motion.div
-          className="lg:col-span-4"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-        >
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                Revenue Overview
-              </CardTitle>
-              <CardDescription>
-                Your earnings over the last 6 months
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RevenueChart />
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 w-full">
+        <DashboardInsights />
 
         {/* Recent Activity */}
         <motion.div

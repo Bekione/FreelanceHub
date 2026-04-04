@@ -67,6 +67,7 @@ const FALLBACKS = {
   light: {
     primary: "#7c3aed",
     background: "#ffffff",
+    popover: "#ffffff",
     foreground: "#09090b",
     muted: "#71717a",
     border: "#e4e4e7",
@@ -74,6 +75,7 @@ const FALLBACKS = {
   dark: {
     primary: "#a78bfa",
     background: "#09090b",
+    popover: "#020817",
     foreground: "#fafafa",
     muted: "#a1a1aa",
     border: "#27272a",
@@ -121,6 +123,7 @@ export default function RevenueChart() {
     return {
       primary: getCSSColor("--primary", fb.primary),
       background: getCSSColor("--background", fb.background),
+      popover: getCSSColor("--popover", fb.background),
       foreground: getCSSColor("--foreground", fb.foreground),
       muted: getCSSColor("--muted-foreground", fb.muted),
       border: getCSSColor("--border", fb.border),
@@ -158,13 +161,11 @@ export default function RevenueChart() {
       if (yScale?.ticks) yScale.ticks.color = c.muted;
       if (yScale?.grid) yScale.grid.color = c.border + "40";
       if (chart.options.plugins?.tooltip) {
-        const isDark = document.documentElement.classList.contains("dark");
-        chart.options.plugins.tooltip.backgroundColor = isDark
-          ? "#18181b"
-          : "#ffffff";
+        chart.options.plugins.tooltip.backgroundColor = c.popover;
         chart.options.plugins.tooltip.titleColor = c.foreground;
         chart.options.plugins.tooltip.bodyColor = c.foreground;
         chart.options.plugins.tooltip.borderColor = c.border;
+        chart.options.plugins.tooltip.cornerRadius = 0;
       }
       chart.update("none");
     };
@@ -214,13 +215,13 @@ export default function RevenueChart() {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: isDark ? "#18181b" : "#ffffff",
+        backgroundColor: initial.popover,
         titleColor: initial.foreground,
         bodyColor: initial.foreground,
         borderColor: initial.border,
         borderWidth: 1,
         padding: 12,
-        cornerRadius: 8,
+        cornerRadius: 0,
         displayColors: false,
         callbacks: {
           label: (ctx) =>
