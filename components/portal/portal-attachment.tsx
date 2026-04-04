@@ -99,7 +99,10 @@ export function PortalAttachment({
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-4xl w-[90vw] h-[80vh] flex flex-col p-0 overflow-hidden border-border/50 gap-0">
+        <DialogContent
+          className="max-w-4xl w-[90vw] h-[80vh] flex flex-col p-0 overflow-hidden border-border/50 gap-0"
+          aria-describedby={undefined}
+        >
           <DialogHeader
             className="p-4 border-b shrink-0 bg-background z-10 m-0 overflow-hidden relative"
             style={{ containerType: "inline-size" }}
