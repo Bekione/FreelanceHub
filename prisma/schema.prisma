@@ -123,6 +123,9 @@ model Profile {
   timezone           String  @default("UTC")
   emailNotifications Boolean @default(true)
 
+  // Billing & Payment Settings
+  paymentDetails     String? @db.Text
+
   // Portal Limits
   freePortalUsed     Boolean @default(false)
 

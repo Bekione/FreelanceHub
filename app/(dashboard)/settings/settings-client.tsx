@@ -139,6 +139,7 @@ export function SettingsContent() {
   const [currencyPref, setCurrencyPref] = useState("USD");
   const [timezonePref, setTimezonePref] = useState("UTC");
   const [dateFormatPref, setDateFormatPref] = useState("MM/DD/YYYY");
+  const [paymentDetailsPref, setPaymentDetailsPref] = useState("");
 
   const { setTheme } = useTheme();
 
@@ -179,6 +180,7 @@ export function SettingsContent() {
         if (d.defaultCurrency) setCurrencyPref(d.defaultCurrency);
         if (d.timezone) setTimezonePref(d.timezone);
         if (d.dateFormat) setDateFormatPref(d.dateFormat);
+        if (d.paymentDetails) setPaymentDetailsPref(d.paymentDetails);
       });
   }, []);
 
@@ -230,6 +232,7 @@ export function SettingsContent() {
     if (key === "defaultCurrency") setCurrencyPref(value);
     if (key === "timezone") setTimezonePref(value);
     if (key === "dateFormat") setDateFormatPref(value);
+    if (key === "paymentDetails") setPaymentDetailsPref(value);
 
     try {
       const res = await fetch("/api/settings/profile", {
@@ -552,6 +555,29 @@ export function SettingsContent() {
                       <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="flex flex-col gap-2 py-3 border-t border-border">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">
+                      Payment Instructions / Bank Details
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      This information will be printed at the bottom of all your
+                      generated PDF invoices. You can include bank details,
+                      PayPal links, or specific payment terms.
+                    </p>
+                  </div>
+                  <textarea
+                    value={paymentDetailsPref}
+                    onChange={(e) => setPaymentDetailsPref(e.target.value)}
+                    onBlur={(e) =>
+                      handleUpdatePref("paymentDetails", e.target.value)
+                    }
+                    placeholder="e.g. Please wire funds to Account #12345678, Routing #987654321..."
+                    className="min-h-[120px] w-full p-3 text-sm bg-background border border-input rounded-none focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+                    disabled={isSavingPref}
+                  />
                 </div>
               </CardContent>
             </Card>

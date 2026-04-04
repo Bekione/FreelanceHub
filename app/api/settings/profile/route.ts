@@ -39,6 +39,7 @@ export async function PATCH(req: Request) {
     "currency",
     "theme",
     "dateFormat",
+    "paymentDetails",
   ];
   const allowed = [...allowedBrandingFields, ...allowedPrefFields];
 
