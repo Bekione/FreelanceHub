@@ -1,34 +1,41 @@
 import { AppLogo } from "@/components/app-logo";
 import Link from "next/link";
 import packageJson from "@/package.json";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
 
-const columns = [
-  {
-    title: "Product",
-    links: [
-      { name: "Features", href: "/#features" },
-      { name: "Pricing", href: "/#pricing" },
-      { name: "Dashboard Preview", href: "/#dashboard-preview" },
-    ],
-  },
-  {
-    title: "Resources",
-    links: [
-      { name: "Changelog", href: "/changelog" },
-      { name: "Status", href: "/status" },
-      { name: "Contact", href: "/#contact" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { name: "Privacy Policy", href: "/privacy" },
-      { name: "Terms of Service", href: "/terms" },
-    ],
-  },
-];
+interface FooterProps {
+  lang: Locale;
+  dict: Dictionary["footer"];
+}
 
-export default function Footer() {
+export default function Footer({ lang, dict }: FooterProps) {
+  const columns = [
+    {
+      title: dict.product,
+      links: [
+        { name: dict.features, href: "/#features" },
+        { name: dict.pricing, href: "/#pricing" },
+        { name: dict.dashboardPreview, href: "/#dashboard-preview" },
+      ],
+    },
+    {
+      title: dict.resources,
+      links: [
+        { name: dict.changelog, href: `/${lang}/changelog` },
+        { name: dict.status, href: `/${lang}/status` },
+        { name: dict.contact, href: "/#contact" },
+      ],
+    },
+    {
+      title: dict.legal,
+      links: [
+        { name: dict.privacy, href: `/${lang}/privacy` },
+        { name: dict.terms, href: `/${lang}/terms` },
+      ],
+    },
+  ];
   return (
     <footer className="border-t border-foreground/6 py-16">
       <div className="container px-6 xl:px-[120px] mx-auto">
@@ -36,7 +43,7 @@ export default function Footer() {
           <div className="md:col-span-2">
             <AppLogo />
             <p className="text-sm text-muted-foreground mt-4 max-w-xs">
-              The all-in-one platform for freelancers to manage their business.
+              {dict.slogan}
             </p>
             <div className="flex gap-4 mt-6">
               {/* X */}
@@ -114,8 +121,9 @@ export default function Footer() {
           <p className="text-sm text-muted-foreground">
             FreelanceHub v{packageJson.version}
           </p>
+          <LanguageSwitcher currentLocale={lang} dropUp />
           <p className="text-sm text-muted-foreground">
-            Made by{" "}
+            {dict.madeBy}{" "}
             <a
               href="https://github.com/bekione"
               target="_blank"

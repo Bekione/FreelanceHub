@@ -2,26 +2,21 @@
 
 import { motion } from "framer-motion";
 import { UserPlus, ClipboardList, BarChart3 } from "lucide-react";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
+import { createT } from "@/lib/i18n/t";
 
-const steps = [
-  {
-    icon: UserPlus,
-    title: "Add Clients & Projects",
-    desc: "Onboard clients and set up projects in seconds.",
-  },
-  {
-    icon: ClipboardList,
-    title: "Track Work & Invoice",
-    desc: "Log time, create invoices, and send them instantly.",
-  },
-  {
-    icon: BarChart3,
-    title: "Analyze Earnings",
-    desc: "See your revenue grow with real-time analytics.",
-  },
-];
+interface HowItWorksProps {
+  dict: Dictionary;
+}
 
-export default function HowItWorks() {
+export default function HowItWorks({ dict }: HowItWorksProps) {
+  const t = createT(dict);
+  const steps = [
+    { icon: UserPlus,      titleKey: "landing.howItWorks.step1Title", descKey: "landing.howItWorks.step1Desc" },
+    { icon: ClipboardList, titleKey: "landing.howItWorks.step2Title", descKey: "landing.howItWorks.step2Desc" },
+    { icon: BarChart3,     titleKey: "landing.howItWorks.step3Title", descKey: "landing.howItWorks.step3Desc" },
+  ];
+
   return (
     <section className="py-24">
       <div className="container px-6 xl:px-[120px] mx-auto">
@@ -32,14 +27,17 @@ export default function HowItWorks() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold">
-            How It <span className="text-gradient-primary">Works</span>
+            {t("landing.howItWorks.sectionTitle1")}{" "}
+            <span className="text-gradient-primary">
+              {t("landing.howItWorks.sectionTitle2")}
+            </span>
           </h2>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
           {steps.map((step, i) => (
             <motion.div
-              key={step.title}
+              key={step.titleKey}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -50,10 +48,10 @@ export default function HowItWorks() {
                 <step.icon className="w-8 h-8 text-primary" />
               </div>
               <div className="text-sm font-bold text-primary mb-2">
-                Step {i + 1}
+                {t("landing.howItWorks.step")} {i + 1}
               </div>
-              <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-              <p className="text-sm text-muted-foreground">{step.desc}</p>
+              <h3 className="text-lg font-semibold mb-2">{t(step.titleKey)}</h3>
+              <p className="text-sm text-muted-foreground">{t(step.descKey)}</p>
             </motion.div>
           ))}
         </div>

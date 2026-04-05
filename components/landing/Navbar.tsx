@@ -5,17 +5,25 @@ import { motion } from "framer-motion";
 import { AppLogo } from "@/components/app-logo";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import type { Locale } from "@/lib/i18n/config";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
 
-const links = [
-  "Features",
-  "Pricing",
-  "Dashboard Preview",
-  "Testimonials",
-  "Contact",
-];
+interface NavbarProps {
+  lang: Locale;
+  dict: Dictionary["nav"];
+}
 
-export default function Navbar() {
+export default function Navbar({ lang, dict }: NavbarProps) {
   const [open, setOpen] = useState(false);
+
+  const links = [
+    { label: dict.features, anchor: "features" },
+    { label: dict.pricing, anchor: "pricing" },
+    { label: dict.dashboardPreview, anchor: "dashboard-preview" },
+    { label: dict.testimonials, anchor: "testimonials" },
+    { label: dict.contact, anchor: "contact" },
+  ];
 
   return (
     <motion.nav
@@ -27,25 +35,23 @@ export default function Navbar() {
       <div className="flex items-center justify-between px-6 xl:px-[120px] py-4">
         <AppLogo />
         <div className="hidden xl:flex items-center gap-8">
-          {links.map((link) => {
-            const href = `/#${link.toLowerCase().replace(/\s+/g, "-")}`;
-            return (
-              <a
-                key={link}
-                href={href}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
-              >
-                {link}
-              </a>
-            );
-          })}
+          {links.map((link) => (
+            <a
+              key={link.anchor}
+              href={`/#${link.anchor}`}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+            >
+              {link.label}
+            </a>
+          ))}
         </div>
-        <div className="hidden xl:block">
+        <div className="hidden xl:flex items-center gap-3">
+          <LanguageSwitcher currentLocale={lang} />
           <Link
-            href="/register"
+            href={`/${lang}/register`}
             className="inline-flex items-center px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 transition-all whitespace-nowrap"
           >
-            Get Started for Free
+            {dict.getStarted}
           </Link>
         </div>
         <button
@@ -57,25 +63,25 @@ export default function Navbar() {
       </div>
       {open && (
         <div className="xl:hidden bg-card/90 backdrop-blur-xl border-t border-foreground/8 p-4 space-y-3">
-          {links.map((link) => {
-            const href = `/#${link.toLowerCase().replace(/\s+/g, "-")}`;
-            return (
-              <a
-                key={link}
-                href={href}
-                className="block text-sm text-muted-foreground hover:text-foreground"
-                onClick={() => setOpen(false)}
-              >
-                {link}
-              </a>
-            );
-          })}
-          <Link
-            href="/register"
-            className="block px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm text-center"
-          >
-            Get Started for Free
-          </Link>
+          {links.map((link) => (
+            <a
+              key={link.anchor}
+              href={`/#${link.anchor}`}
+              className="block text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => setOpen(false)}
+            >
+              {link.label}
+            </a>
+          ))}
+          <div className="flex items-center justify-between pt-2 border-t border-foreground/8">
+            <LanguageSwitcher currentLocale={lang} />
+            <Link
+              href={`/${lang}/register`}
+              className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm text-center"
+            >
+              {dict.getStarted}
+            </Link>
+          </div>
         </div>
       )}
     </motion.nav>

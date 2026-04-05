@@ -3,15 +3,23 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import dashboardImg from "@/public/images/dashboard-preview.png";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
+import { createT } from "@/lib/i18n/t";
 
-const labels = [
-  { text: "KPI Cards", top: "12%", left: "25%" },
-  { text: "Revenue Chart", top: "55%", left: "35%" },
-  { text: "Recent Projects", top: "45%", right: "8%" },
-  { text: "Quick Navigation", top: "30%", left: "2%" },
-];
+interface DashboardShowcaseProps {
+  dict: Dictionary;
+}
 
-export default function DashboardShowcase() {
+export default function DashboardShowcase({ dict }: DashboardShowcaseProps) {
+  const t = createT(dict);
+
+  const labels = [
+    { textKey: "landing.showcase.labelKpi",      top: "12%", left: "25%" },
+    { textKey: "landing.showcase.labelRevenue",  top: "55%", left: "35%" },
+    { textKey: "landing.showcase.labelProjects", top: "45%", right: "8%" },
+    { textKey: "landing.showcase.labelNav",      top: "30%", left: "2%" },
+  ];
+
   return (
     <section id="dashboard-preview" className="py-24 relative">
       <div className="container px-6 xl:px-[120px] mx-auto relative z-10">
@@ -22,11 +30,13 @@ export default function DashboardShowcase() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold">
-            Everything You Need in{" "}
-            <span className="text-gradient-primary">One Dashboard</span>
+            {t("landing.showcase.headline1")}{" "}
+            <span className="text-gradient-primary">
+              {t("landing.showcase.headline2")}
+            </span>
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            A bird's-eye view of your entire freelance operation.
+            {t("landing.showcase.subtext")}
           </p>
         </motion.div>
 
@@ -51,7 +61,7 @@ export default function DashboardShowcase() {
 
           {labels.map((label, i) => (
             <motion.div
-              key={label.text}
+              key={label.textKey}
               animate={{ y: [0, -8, 0] }}
               transition={{
                 repeat: Infinity,
@@ -63,7 +73,7 @@ export default function DashboardShowcase() {
               style={{ top: label.top, left: label.left, right: label.right }}
             >
               <span className="w-2 h-2 rounded-full bg-primary" />
-              {label.text}
+              {t(label.textKey)}
             </motion.div>
           ))}
         </motion.div>

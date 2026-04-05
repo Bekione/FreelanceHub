@@ -2,32 +2,21 @@
 
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
+import { createT } from "@/lib/i18n/t";
 
-const testimonials = [
-  {
-    name: "Sarah Chen",
-    role: "UX Designer",
-    quote:
-      "FreelanceHub transformed how I manage my design clients. Invoicing used to take hours — now it's minutes.",
-    avatar: "SC",
-  },
-  {
-    name: "Marcus Johnson",
-    role: "Web Developer",
-    quote:
-      "The dashboard gives me a complete picture of my business. Revenue tracking alone is worth it.",
-    avatar: "MJ",
-  },
-  {
-    name: "Elena Rodriguez",
-    role: "Brand Strategist",
-    quote:
-      "I've tried a dozen tools. FreelanceHub is the only one that actually feels built for freelancers.",
-    avatar: "ER",
-  },
-];
+interface TestimonialsProps {
+  dict: Dictionary;
+}
 
-export default function Testimonials() {
+export default function Testimonials({ dict }: TestimonialsProps) {
+  const t = createT(dict);
+  const testimonials = [
+    { name: "Sarah Chen",       avatarKey: "SC", quoteKey: "landing.testimonials.quote1", roleKey: "landing.testimonials.role1" },
+    { name: "Marcus Johnson",   avatarKey: "MJ", quoteKey: "landing.testimonials.quote2", roleKey: "landing.testimonials.role2" },
+    { name: "Elena Rodriguez",  avatarKey: "ER", quoteKey: "landing.testimonials.quote3", roleKey: "landing.testimonials.role3" },
+  ];
+
   return (
     <section id="testimonials" className="py-24">
       <div className="container px-6 xl:px-[120px] mx-auto">
@@ -38,14 +27,17 @@ export default function Testimonials() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold">
-            Loved by <span className="text-gradient-primary">Freelancers</span>
+            {t("landing.testimonials.sectionTitle1")}{" "}
+            <span className="text-gradient-primary">
+              {t("landing.testimonials.sectionTitle2")}
+            </span>
           </h2>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {testimonials.map((t, i) => (
+          {testimonials.map((item, i) => (
             <motion.div
-              key={t.name}
+              key={item.name}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -58,15 +50,15 @@ export default function Testimonials() {
                 ))}
               </div>
               <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-                "{t.quote}"
+                "{t(item.quoteKey)}"
               </p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                  {t.avatar}
+                  {item.avatarKey}
                 </div>
                 <div>
-                  <div className="text-sm font-semibold">{t.name}</div>
-                  <div className="text-xs text-muted-foreground">{t.role}</div>
+                  <div className="text-sm font-semibold">{item.name}</div>
+                  <div className="text-xs text-muted-foreground">{t(item.roleKey)}</div>
                 </div>
               </div>
             </motion.div>

@@ -2,40 +2,50 @@
 
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
+import { createT } from "@/lib/i18n/t";
 
-const plans = [
-  {
-    name: "Free",
-    price: "$0",
-    desc: "Perfect for getting started",
-    features: [
-      "Up to 10 projects",
-      "Basic invoicing",
-      "Client management",
-      "Community support",
-    ],
-    cta: "Start Free",
-    highlight: false,
-  },
-  {
-    name: "Pro",
-    price: "$5",
-    period: "/mo",
-    desc: "For serious freelancers",
-    features: [
-      "Unlimited projects",
-      "Advanced invoicing",
-      "Revenue analytics",
-      "Time tracking",
-      "Priority support",
-      "Custom branding",
-    ],
-    cta: "Upgrade to Pro",
-    highlight: true,
-  },
-];
+interface PricingProps {
+  dict: Dictionary;
+  lang: string;
+}
 
-export default function Pricing() {
+export default function Pricing({ dict, lang }: PricingProps) {
+  const t = createT(dict);
+  const plans = [
+    {
+      nameKey: "landing.pricing.freeName",
+      price: "$0",
+      descKey: "landing.pricing.freeDesc",
+      featureKeys: [
+        "landing.pricing.freeFeature1",
+        "landing.pricing.freeFeature2",
+        "landing.pricing.freeFeature3",
+        "landing.pricing.freeFeature4",
+      ],
+      ctaKey: "landing.pricing.freeCta",
+      highlight: false,
+      plan: "free",
+    },
+    {
+      nameKey: "landing.pricing.proName",
+      price: "$5",
+      periodKey: "landing.pricing.perMonth",
+      descKey: "landing.pricing.proDesc",
+      featureKeys: [
+        "landing.pricing.proFeature1",
+        "landing.pricing.proFeature2",
+        "landing.pricing.proFeature3",
+        "landing.pricing.proFeature4",
+        "landing.pricing.proFeature5",
+        "landing.pricing.proFeature6",
+      ],
+      ctaKey: "landing.pricing.proCta",
+      highlight: true,
+      plan: "pro",
+    },
+  ];
+
   return (
     <section id="pricing" className="py-24">
       <div className="container px-6 xl:px-[120px] mx-auto">
@@ -46,18 +56,20 @@ export default function Pricing() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold">
-            Simple, Transparent{" "}
-            <span className="text-gradient-primary">Pricing</span>
+            {t("landing.pricing.sectionTitle1")}{" "}
+            <span className="text-gradient-primary">
+              {t("landing.pricing.sectionTitle2")}
+            </span>
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            No hidden fees. Cancel anytime.
+            {t("landing.pricing.sectionSubtitle")}
           </p>
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto h-full">
           {plans.map((plan, i) => (
             <motion.div
-              key={plan.name}
+              key={plan.nameKey}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -69,35 +81,35 @@ export default function Pricing() {
               }`}
             >
               {plan.highlight && (
-                <span className="inline-block px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-bold mb-4">
-                  Most Popular
+                <span className="inline-block px-3 py-1 rounded-full w-fit bg-primary/20 text-primary text-xs font-bold mb-4">
+                  {t("landing.pricing.mostPopular")}
                 </span>
               )}
-              <h3 className="text-2xl font-bold">{plan.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1">{plan.desc}</p>
+              <h3 className="text-2xl font-bold">{t(plan.nameKey)}</h3>
+              <p className="text-sm text-muted-foreground mt-1">{t(plan.descKey)}</p>
               <div className="mt-6 mb-8">
                 <span className="text-5xl font-bold">{plan.price}</span>
-                {plan.period && (
-                  <span className="text-muted-foreground">{plan.period}</span>
+                {plan.periodKey && (
+                  <span className="text-muted-foreground">{t(plan.periodKey)}</span>
                 )}
               </div>
               <ul className="space-y-3 mb-8 flex-1">
-                {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-3 text-sm">
+                {plan.featureKeys.map((fk) => (
+                  <li key={fk} className="flex items-center gap-3 text-sm">
                     <Check className="w-4 h-4 text-primary shrink-0" />
-                    <span className="text-muted-foreground">{f}</span>
+                    <span className="text-muted-foreground">{t(fk)}</span>
                   </li>
                 ))}
               </ul>
               <a
-                href={`/register?plan=${plan.name.toLowerCase()}`}
+                href={`/${lang}/register?plan=${plan.plan}`}
                 className={`block text-center w-full py-3 rounded-lg font-semibold text-sm transition-all mt-auto ${
                   plan.highlight
                     ? "bg-primary text-primary-foreground hover:brightness-110 shadow-lg shadow-primary/20"
                     : "glass text-foreground hover:bg-foreground/5"
                 }`}
               >
-                {plan.cta}
+                {t(plan.ctaKey)}
               </a>
             </motion.div>
           ))}

@@ -9,41 +9,24 @@ import {
   Clock,
   Shield,
 } from "lucide-react";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
+import { createT } from "@/lib/i18n/t";
 
-const features = [
-  {
-    icon: FolderKanban,
-    title: "Manage Projects",
-    desc: "Organize tasks, deadlines, and deliverables in one place.",
-  },
-  {
-    icon: Users,
-    title: "Track Clients",
-    desc: "Keep all client info, communications, and history organized.",
-  },
-  {
-    icon: FileText,
-    title: "Send Invoices",
-    desc: "Generate professional invoices and get paid faster.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Monitor Revenue",
-    desc: "Real-time earnings analytics and financial insights.",
-  },
-  {
-    icon: Clock,
-    title: "Time Tracking",
-    desc: "Log hours effortlessly and bill clients accurately.",
-  },
-  {
-    icon: Shield,
-    title: "Secure Auth",
-    desc: "Enterprise-grade security to protect your business data.",
-  },
-];
+interface FeaturesProps {
+  dict: Dictionary;
+}
 
-export default function Features() {
+export default function Features({ dict }: FeaturesProps) {
+  const t = createT(dict);
+  const features = [
+    { icon: FolderKanban, titleKey: "landing.features.manageProjects", descKey: "landing.features.manageProjectsDesc" },
+    { icon: Users,        titleKey: "landing.features.trackClients",   descKey: "landing.features.trackClientsDesc" },
+    { icon: FileText,     titleKey: "landing.features.sendInvoices",   descKey: "landing.features.sendInvoicesDesc" },
+    { icon: TrendingUp,   titleKey: "landing.features.monitorRevenue", descKey: "landing.features.monitorRevenueDesc" },
+    { icon: Clock,        titleKey: "landing.features.timeTracking",   descKey: "landing.features.timeTrackingDesc" },
+    { icon: Shield,       titleKey: "landing.features.secureAuth",     descKey: "landing.features.secureAuthDesc" },
+  ];
+
   return (
     <section id="features" className="py-24 relative">
       <div className="container px-6 xl:px-[120px] mx-auto">
@@ -54,18 +37,20 @@ export default function Features() {
           className="text-center mb-16"
         >
           <h2 className="text-4xl md:text-5xl font-bold">
-            Everything You Need to{" "}
-            <span className="text-gradient-primary">Succeed</span>
+            {t("landing.features.sectionTitle1")}{" "}
+            <span className="text-gradient-primary">
+              {t("landing.features.sectionTitle2")}
+            </span>
           </h2>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Powerful tools designed for freelancers who mean business.
+            {t("landing.features.sectionSubtitle")}
           </p>
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f, i) => (
             <motion.div
-              key={f.title}
+              key={f.titleKey}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -75,8 +60,8 @@ export default function Features() {
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                 <f.icon className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
-              <p className="text-sm text-muted-foreground">{f.desc}</p>
+              <h3 className="text-lg font-semibold mb-2">{t(f.titleKey)}</h3>
+              <p className="text-sm text-muted-foreground">{t(f.descKey)}</p>
             </motion.div>
           ))}
         </div>
