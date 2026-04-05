@@ -7,7 +7,6 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { hasLocale, freeLocales } from "@/lib/i18n/config";
 import { isPro } from "@/lib/subscription/limits";
-import type { LayoutProps } from "next/types";
 import type { FreeLocale } from "@/lib/i18n/config";
 
 export const metadata: Metadata = {

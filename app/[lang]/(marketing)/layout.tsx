@@ -4,7 +4,6 @@ import { hasLocale, locales, defaultLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/getDictionary";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-import type { LayoutProps } from "next/types";
 
 const APP_URL =
   process.env.NEXT_PUBLIC_APP_URL ?? "https://freelancehub.app";

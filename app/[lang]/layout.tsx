@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { locales, hasLocale, getLocaleDir } from "@/lib/i18n/config";
 import { Providers } from "@/app/providers";
 import { HtmlDir } from "@/components/i18n/html-dir";
-import type { LayoutProps } from "next/types";
 
 export async function generateStaticParams() {
   return locales.map((lang) => ({ lang }));

@@ -2,7 +2,6 @@ import Index from "@/components/landing/Index";
 import { notFound } from "next/navigation";
 import { hasLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/getDictionary";
-import type { PageProps } from "next/types";
 
 export default async function MarketingPage({ params }: PageProps<"/[lang]">) {
   const { lang } = await params;
