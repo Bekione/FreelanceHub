@@ -33,6 +33,17 @@ function statusVariant(status: string) {
   }
 }
 
+/** Translate a status string using project or invoice status keys */
+function useStatusLabel(status: string, t: (key: string) => string): string {
+  const projectKey = `projects.status.${status}`;
+  const invoiceKey = `invoices.status_values.${status}`;
+  const fromProject = t(projectKey);
+  if (fromProject !== projectKey) return fromProject;
+  const fromInvoice = t(invoiceKey);
+  if (fromInvoice !== invoiceKey) return fromInvoice;
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
+
 export function DashboardContent() {
   const { dashboardMetrics, isLoadingMetrics, fetchMetrics, fetchInvoices } =
     useDataStore();
@@ -161,8 +172,7 @@ export function DashboardContent() {
                       variant={statusVariant(item.status)}
                       className="capitalize text-xs shrink-0"
                     >
-                      {item.status.charAt(0) +
-                        item.status.slice(1).toLowerCase()}
+                      {useStatusLabel(item.status, t)}
                     </Badge>
                   </div>
                 ))

@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { PortalAttachment } from "@/components/portal/portal-attachment";
+import { getDictionary } from "@/lib/i18n/getDictionary";
+import { createT } from "@/lib/i18n/t";
+import { hasLocale } from "@/lib/i18n/config";
 
 export default async function ClientPortalPage({
   params,
@@ -28,6 +31,10 @@ export default async function ClientPortalPage({
   params: Promise<{ lang: string; clientId: string; token: string }>;
 }) {
   const { lang, clientId, token } = await params;
+
+  const resolvedLang = hasLocale(lang) ? lang : "en";
+  const dict = await getDictionary(resolvedLang);
+  const t = createT(dict);
 
   const client = await prisma.client.findUnique({
     where: { id: clientId },
@@ -139,7 +146,7 @@ export default async function ClientPortalPage({
           </div>
           <div className="text-sm text-muted-foreground flex items-center gap-2 border border-border/50 bg-muted/30 px-3 py-1.5">
             <Building className="h-4 w-4" />
-            Client Portal: <span className="font-medium text-foreground">{client.name}</span>
+            {t("portal.clientPortalLabel")} <span className="font-medium text-foreground">{client.name}</span>
           </div>
         </div>
       </header>
@@ -147,10 +154,10 @@ export default async function ClientPortalPage({
       <main className="container max-w-5xl mx-auto px-4 py-12 space-y-12">
         <section>
           <h1 className="text-4xl font-heading font-bold mb-2 tracking-tight">
-            Welcome back, {client.name.split(" ")[0]}
+            {`${t("portal.welcomeBack")}, ${client.name.split(" ")[0]}`}
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl">
-            Here is the current status of your projects and financial overview with {freelancerName}.
+            {`${t("portal.welcomeMessage")} ${freelancerName}.`}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
@@ -158,7 +165,7 @@ export default async function ClientPortalPage({
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Active Projects</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t("portal.activeProjects")}</p>
                     <p className="text-3xl font-bold">{activeProjects.length}</p>
                   </div>
                   <div className="p-3" style={{ backgroundColor: `${brandColor}15`, color: brandColor }}>
@@ -172,7 +179,7 @@ export default async function ClientPortalPage({
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Outstanding Balance</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t("portal.outstandingBalance")}</p>
                     <p className="text-3xl font-bold text-destructive">
                       {new Intl.NumberFormat("en-US", {
                         style: "currency",
@@ -191,7 +198,7 @@ export default async function ClientPortalPage({
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Completed Operations</p>
+                    <p className="text-sm font-medium text-muted-foreground">{t("portal.completedOperations")}</p>
                     <p className="text-3xl font-bold">{completedProjects.length + paidInvoices.length}</p>
                   </div>
                   <div className="p-3 bg-muted text-muted-foreground">
@@ -207,11 +214,11 @@ export default async function ClientPortalPage({
           <div className="lg:col-span-2 space-y-6">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <FolderOpen className="h-6 w-6 text-muted-foreground" />
-              Active Projects
+              {t("portal.activeProjects")}
             </h2>
             {activeProjects.length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-border/50 text-muted-foreground">
-                No active projects right now.
+                {t("portal.noActiveProjects")}
               </div>
             ) : (
               <div className="space-y-4">
@@ -240,7 +247,7 @@ export default async function ClientPortalPage({
                       <CardContent>
                         <div className="mt-2 space-y-3">
                           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                            Project Files
+                            {t("portal.projectFiles")}
                           </p>
                           <div className="flex flex-wrap gap-2">
                             {project.attachments.map((att) => (
@@ -263,12 +270,12 @@ export default async function ClientPortalPage({
           <div className="space-y-6">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <FileText className="h-6 w-6 text-muted-foreground" />
-              Invoices
+              {t("portal.invoices")}
             </h2>
 
             {unpaidInvoices.length > 0 && (
               <div className="space-y-3">
-                <p className="text-sm font-medium text-destructive px-1">Action Required</p>
+                <p className="text-sm font-medium text-destructive px-1">{t("portal.actionRequired")}</p>
                 {unpaidInvoices.map((invoice) => (
                   <a
                     key={invoice.id}
@@ -294,7 +301,7 @@ export default async function ClientPortalPage({
                           className="px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm flex items-center gap-1.5 transition-transform group-hover:scale-105"
                           style={{ backgroundColor: brandColor }}
                         >
-                          View & Pay <Link2 className="h-3 w-3" />
+                          {t("portal.viewAndPay")} <Link2 className="h-3 w-3" />
                         </div>
                       </CardContent>
                     </Card>
@@ -305,7 +312,7 @@ export default async function ClientPortalPage({
 
             {paidInvoices.length > 0 && (
               <div className="space-y-3 pt-6">
-                <p className="text-sm font-medium text-muted-foreground px-1">Paid & Settled</p>
+                <p className="text-sm font-medium text-muted-foreground px-1">{t("portal.paidSettled")}</p>
                 {paidInvoices.slice(0, 5).map((invoice) => (
                   <a
                     key={invoice.id}
@@ -324,11 +331,11 @@ export default async function ClientPortalPage({
                             }).format(invoice.amount)}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Paid {new Date(invoice.updatedAt).toLocaleDateString()}
+                            {`${t("portal.paidOn")} ${new Date(invoice.updatedAt).toLocaleDateString()}`}
                           </p>
                         </div>
                         <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                          Paid
+                          {t("invoices.status_values.PAID")}
                         </Badge>
                       </CardContent>
                     </Card>
@@ -342,13 +349,13 @@ export default async function ClientPortalPage({
 
       <footer className="container max-w-5xl mx-auto px-4 py-8 mt-12 border-t border-border/40 text-center flex flex-col items-center justify-center">
         <p className="text-sm text-muted-foreground">
-          Secure Client Portal provided by {freelancerName}
+          {`${t("portal.securePortalBy")} ${freelancerName}`}
         </p>
         {(!client.user.subscriptionStatus ||
           (client.user.subscriptionStatus !== "active" &&
             client.user.subscriptionStatus !== "past_due")) && (
           <div className="mt-4 opacity-50 grayscale scale-90">
-            <p className="text-xs font-medium tracking-widest uppercase">Powered by FreelanceHub</p>
+            <p className="text-xs font-medium tracking-widest uppercase">{t("portal.poweredBy")}</p>
           </div>
         )}
       </footer>

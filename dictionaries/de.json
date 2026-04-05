@@ -460,7 +460,43 @@
     "role": "Was beschreibt Sie am besten?",
     "companySize": "Teamgröße",
     "skip": "Vorerst überspringen",
-    "continue": "Weiter"
+    "continue": "Weiter",
+    "whatsYourName": "Wie heißen Sie?",
+    "fullName": "Vollständiger Name",
+    "next": "Weiter",
+    "whatDescribes": "Was beschreibt Ihre Freelance-Arbeit?",
+    "primaryGoal": "Was ist Ihr Hauptziel?",
+    "pickYourStyle": "Wählen Sie Ihren Stil",
+    "finish": "Fertigstellen",
+    "settingUp": "Ihr Profil wird eingerichtet",
+    "justAMoment": "Einen Moment...",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "roles": {
+      "webDev": "Webentwicklung",
+      "mobileDev": "Mobile App-Entwicklung",
+      "uiux": "UI/UX-Design",
+      "marketing": "Marketing",
+      "writing": "Schreiben & Übersetzen",
+      "video": "Video & Animation",
+      "consulting": "Beratung",
+      "other": "Sonstiges"
+    },
+    "goals": {
+      "fulltime": "Vollzeit-Freelancing",
+      "sideHustle": "Nebentätigkeit",
+      "agency": "Agentur aufbauen",
+      "exploring": "Nur erkunden"
+    }
+  },
+  "checkout": {
+    "successTitle": "Sie sind Pro! 🎉",
+    "successDesc": "Ihr Abonnement ist aktiv. Eine Bestätigungs-E-Mail ist unterwegs. Pro-Funktionen sind in Ihrem Dashboard freigeschaltet.",
+    "planName": "FreelanceHub Pro",
+    "planPrice": "5 $/Monat · Automatische Verlängerung",
+    "active": "Aktiv",
+    "goToDashboard": "Zum Dashboard →",
+    "manageSubscription": "Abonnement verwalten"
   },
   "portal": {
     "welcomeBack": "Willkommen zurück",
@@ -478,7 +514,12 @@
     "invoiceNumber": "Rechnung Nr.",
     "amount": "Betrag",
     "status": "Status",
-    "dueDate": "Fälligkeitsdatum"
+    "dueDate": "Fälligkeitsdatum",
+    "clientPortalLabel": "Kundenportal:",
+    "welcomeMessage": "Hier ist der aktuelle Status Ihrer Projekte und die finanzielle Übersicht mit",
+    "viewAndPay": "Ansehen & Bezahlen",
+    "paidOn": "Bezahlt am",
+    "securePortalBy": "Sicheres Kundenportal bereitgestellt von"
   },
   "upgrade": {
     "title": "Auf Pro upgraden",

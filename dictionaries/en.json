@@ -460,7 +460,43 @@
     "role": "What best describes you?",
     "companySize": "Team size",
     "skip": "Skip for now",
-    "continue": "Continue"
+    "continue": "Continue",
+    "whatsYourName": "What's your name?",
+    "fullName": "Full name",
+    "next": "Next",
+    "whatDescribes": "What describes your freelance work?",
+    "primaryGoal": "What's your primary goal?",
+    "pickYourStyle": "Pick your style",
+    "finish": "Finish",
+    "settingUp": "Setting up your profile",
+    "justAMoment": "Just a moment...",
+    "light": "Light",
+    "dark": "Dark",
+    "roles": {
+      "webDev": "Web Development",
+      "mobileDev": "Mobile App Dev",
+      "uiux": "UI/UX Design",
+      "marketing": "Marketing",
+      "writing": "Writing & Translation",
+      "video": "Video & Animation",
+      "consulting": "Consulting",
+      "other": "Other"
+    },
+    "goals": {
+      "fulltime": "Full-time Freelancing",
+      "sideHustle": "Side Hustle",
+      "agency": "Growing an Agency",
+      "exploring": "Just exploring"
+    }
+  },
+  "checkout": {
+    "successTitle": "You're Pro! 🎉",
+    "successDesc": "Your subscription is active. A confirmation email is on its way. Pro features are unlocked across your dashboard.",
+    "planName": "FreelanceHub Pro",
+    "planPrice": "$5/month · Renews automatically",
+    "active": "Active",
+    "goToDashboard": "Go to Dashboard →",
+    "manageSubscription": "Manage Subscription"
   },
   "portal": {
     "welcomeBack": "Welcome back",
@@ -478,7 +514,13 @@
     "invoiceNumber": "Invoice #",
     "amount": "Amount",
     "status": "Status",
-    "dueDate": "Due Date"
+    "dueDate": "Due Date",
+    "clientPortalLabel": "Client Portal:",
+    "welcomeMessage": "Here is the current status of your projects and financial overview with",
+    "viewAndPay": "View & Pay",
+    "paidOn": "Paid",
+    "securePortalBy": "Secure Client Portal provided by",
+    "viewAndPayInvoice": "View & Pay"
   },
   "upgrade": {
     "title": "Upgrade to Pro",

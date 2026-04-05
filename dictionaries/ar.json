@@ -460,7 +460,43 @@
     "role": "ما الذي يصفك بشكل أفضل؟",
     "companySize": "حجم الفريق",
     "skip": "تخطي الآن",
-    "continue": "متابعة"
+    "continue": "متابعة",
+    "whatsYourName": "ما اسمك؟",
+    "fullName": "الاسم الكامل",
+    "next": "التالي",
+    "whatDescribes": "ما الذي يصف عملك الحر؟",
+    "primaryGoal": "ما هو هدفك الرئيسي؟",
+    "pickYourStyle": "اختر أسلوبك",
+    "finish": "إنهاء",
+    "settingUp": "جارٍ إعداد ملفك الشخصي",
+    "justAMoment": "لحظة من فضلك...",
+    "light": "فاتح",
+    "dark": "داكن",
+    "roles": {
+      "webDev": "تطوير الويب",
+      "mobileDev": "تطوير تطبيقات الجوال",
+      "uiux": "تصميم UI/UX",
+      "marketing": "التسويق",
+      "writing": "الكتابة والترجمة",
+      "video": "الفيديو والرسوم المتحركة",
+      "consulting": "الاستشارات",
+      "other": "أخرى"
+    },
+    "goals": {
+      "fulltime": "العمل الحر بدوام كامل",
+      "sideHustle": "عمل جانبي",
+      "agency": "تنمية وكالة",
+      "exploring": "مجرد استكشاف"
+    }
+  },
+  "checkout": {
+    "successTitle": "أنت الآن Pro! 🎉",
+    "successDesc": "اشتراكك نشط. بريد إلكتروني للتأكيد في الطريق. ميزات Pro مفعّلة في لوحة التحكم.",
+    "planName": "FreelanceHub Pro",
+    "planPrice": "5 $/شهر · يتجدد تلقائياً",
+    "active": "نشط",
+    "goToDashboard": "الذهاب إلى لوحة التحكم →",
+    "manageSubscription": "إدارة الاشتراك"
   },
   "portal": {
     "welcomeBack": "مرحباً بعودتك",
@@ -478,7 +514,12 @@
     "invoiceNumber": "رقم الفاتورة",
     "amount": "المبلغ",
     "status": "الحالة",
-    "dueDate": "تاريخ الاستحقاق"
+    "dueDate": "تاريخ الاستحقاق",
+    "clientPortalLabel": "بوابة العميل:",
+    "welcomeMessage": "إليك الحالة الحالية لمشاريعك والنظرة المالية مع",
+    "viewAndPay": "عرض ودفع",
+    "paidOn": "مدفوع في",
+    "securePortalBy": "بوابة عملاء آمنة مقدمة من"
   },
   "upgrade": {
     "title": "الترقية إلى Pro",

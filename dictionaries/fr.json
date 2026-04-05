@@ -460,7 +460,43 @@
     "role": "Qu'est-ce qui vous décrit le mieux ?",
     "companySize": "Taille de l'équipe",
     "skip": "Passer pour l'instant",
-    "continue": "Continuer"
+    "continue": "Continuer",
+    "whatsYourName": "Quel est votre nom ?",
+    "fullName": "Nom complet",
+    "next": "Suivant",
+    "whatDescribes": "Qu'est-ce qui décrit votre travail freelance ?",
+    "primaryGoal": "Quel est votre objectif principal ?",
+    "pickYourStyle": "Choisissez votre style",
+    "finish": "Terminer",
+    "settingUp": "Configuration de votre profil",
+    "justAMoment": "Un instant...",
+    "light": "Clair",
+    "dark": "Sombre",
+    "roles": {
+      "webDev": "Développement Web",
+      "mobileDev": "Développement d'Apps Mobiles",
+      "uiux": "Design UI/UX",
+      "marketing": "Marketing",
+      "writing": "Rédaction et Traduction",
+      "video": "Vidéo et Animation",
+      "consulting": "Conseil",
+      "other": "Autre"
+    },
+    "goals": {
+      "fulltime": "Freelance à temps plein",
+      "sideHustle": "Activité secondaire",
+      "agency": "Développer une agence",
+      "exploring": "Juste explorer"
+    }
+  },
+  "checkout": {
+    "successTitle": "Vous êtes Pro ! 🎉",
+    "successDesc": "Votre abonnement est actif. Un e-mail de confirmation est en route. Les fonctionnalités Pro sont débloquées sur votre tableau de bord.",
+    "planName": "FreelanceHub Pro",
+    "planPrice": "5 $/mois · Renouvellement automatique",
+    "active": "Actif",
+    "goToDashboard": "Aller au tableau de bord →",
+    "manageSubscription": "Gérer l'abonnement"
   },
   "portal": {
     "welcomeBack": "Bon retour",
@@ -478,7 +514,12 @@
     "invoiceNumber": "Facture n°",
     "amount": "Montant",
     "status": "Statut",
-    "dueDate": "Date d'échéance"
+    "dueDate": "Date d'échéance",
+    "clientPortalLabel": "Portail client :",
+    "welcomeMessage": "Voici l'état actuel de vos projets et un aperçu financier avec",
+    "viewAndPay": "Voir et payer",
+    "paidOn": "Payé le",
+    "securePortalBy": "Portail client sécurisé fourni par"
   },
   "upgrade": {
     "title": "Passer à Pro",
