@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import { Raleway, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { Providers } from "./providers";
 
-const spaceGrotesk = Space_Grotesk({
+export const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-heading",
 });
 
-const raleway = Raleway({
+export const raleway = Raleway({
   subsets: ["latin"],
   variable: "--font-sans",
 });
@@ -30,7 +29,6 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
       suppressHydrationWarning
       className={cn(
         "h-full antialiased",
@@ -42,7 +40,7 @@ export default function RootLayout({
         className="min-h-full bg-background text-foreground font-sans"
         suppressHydrationWarning
       >
-        <Providers>{children}</Providers>
+        {children}
       </body>
     </html>
   );

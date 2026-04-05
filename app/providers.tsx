@@ -1,21 +1,26 @@
 "use client";
 
-import { ThemeProvider, useTheme } from "next-themes";
+import { DirectionProvider } from "@radix-ui/react-direction";
+import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+interface ProvidersProps {
+  children: React.ReactNode;
+  dir?: "ltr" | "rtl";
+}
+
+export function Providers({ children, dir = "ltr" }: ProvidersProps) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      {children}
-      <Toaster
-        richColors
-        position="bottom-right"
-      />
-    </ThemeProvider>
+    <DirectionProvider dir={dir}>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        {children}
+        <Toaster richColors position="bottom-right" />
+      </ThemeProvider>
+    </DirectionProvider>
   );
 }

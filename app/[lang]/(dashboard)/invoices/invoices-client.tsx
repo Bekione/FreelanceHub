@@ -337,9 +337,9 @@ export function InvoicesContent() {
                 <span className="text-xs text-muted-foreground">
                   {totalInvoices} / {FREE_LIMITS.invoicesPerMonth} this month
                 </span>
-                <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="w-32 h-1.5 bg-muted overflow-hidden">
                   <div
-                    className={`h-full transition-all rounded-full ${
+                    className={`h-full transition-all ${
                       atLimit ? "bg-destructive" : "bg-primary"
                     }`}
                     style={{
@@ -457,8 +457,8 @@ export function InvoicesContent() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.35 }}
         >
-          <Card>
-            <div className="rounded-md border border-border/50">
+          <Card className="p-0">
+            <div className="border border-border/50">
               {showSkeleton ? (
                 <div className="p-4 space-y-3">
                   {Array.from({ length: 5 }).map((_, i) => (
@@ -540,12 +540,10 @@ export function InvoicesContent() {
                                 size="icon"
                                 className="h-8 w-8 hover:text-primary transition-colors"
                                 title="Print Invoice"
-                                onClick={() =>
-                                  window.open(
-                                    `/invoices/${invoice.id}/print`,
-                                    "_blank",
-                                  )
-                                }
+                                onClick={() => {
+                                  const locale = window.location.pathname.split("/")[1] || "en";
+                                  window.open(`/${locale}/invoices/${invoice.id}/print`, "_blank");
+                                }}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                               </Button>

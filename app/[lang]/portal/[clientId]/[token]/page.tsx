@@ -11,7 +11,6 @@ import {
 import {
   FileText,
   FolderOpen,
-  Download,
   Building,
   Link2,
   Building2,
@@ -23,29 +22,21 @@ import {
 import Image from "next/image";
 import { PortalAttachment } from "@/components/portal/portal-attachment";
 
-// Server Component
 export default async function ClientPortalPage({
   params,
 }: {
-  params: Promise<{ clientId: string; token: string }>;
+  params: Promise<{ lang: string; clientId: string; token: string }>;
 }) {
-  const { clientId, token } = await params;
+  const { lang, clientId, token } = await params;
 
-  // 1. Validate the portal link
   const client = await prisma.client.findUnique({
     where: { id: clientId },
     include: {
-      user: {
-        include: {
-          profile: true,
-        },
-      },
+      user: { include: { profile: true } },
       projects: {
         where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
-        include: {
-          attachments: true,
-        },
+        include: { attachments: true },
       },
       invoices: {
         where: { deletedAt: null },
@@ -57,11 +48,7 @@ export default async function ClientPortalPage({
   if (!client || !client.hasPortal || client.portalToken !== token) {
     return notFound();
   }
-
-  // Soft-deleted clients shouldn't have active portals
-  if (client.deletedAt) {
-    return notFound();
-  }
+  if (client.deletedAt) return notFound();
 
   const profile = client.user.profile;
   const brandColor = profile?.brandColor || "#f59e0b";
@@ -105,7 +92,6 @@ export default async function ClientPortalPage({
     (i) => i.status === "PENDING" || i.status === "OVERDUE",
   );
   const paidInvoices = client.invoices.filter((i) => i.status === "PAID");
-
   const totalOutstanding = unpaidInvoices.reduce(
     (acc, inv) => acc + inv.amount,
     0,
@@ -113,7 +99,6 @@ export default async function ClientPortalPage({
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans print:bg-white">
-      {/* Dynamic Brand Underlay */}
       <div
         className="absolute top-0 left-0 w-full h-96 opacity-10 pointer-events-none -z-10"
         style={{
@@ -121,7 +106,6 @@ export default async function ClientPortalPage({
         }}
       />
 
-      {/* Navigation / Header */}
       <header className="border-b border-border/40 bg-background/50 backdrop-blur-xl sticky top-0 z-40">
         <div className="container max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -153,24 +137,20 @@ export default async function ClientPortalPage({
             )}
             <span className="font-semibold text-lg">{freelancerName}</span>
           </div>
-
           <div className="text-sm text-muted-foreground flex items-center gap-2 border border-border/50 bg-muted/30 px-3 py-1.5">
             <Building className="h-4 w-4" />
-            Client Portal:{" "}
-            <span className="font-medium text-foreground">{client.name}</span>
+            Client Portal: <span className="font-medium text-foreground">{client.name}</span>
           </div>
         </div>
       </header>
 
       <main className="container max-w-5xl mx-auto px-4 py-12 space-y-12">
-        {/* Welcome Section */}
         <section>
           <h1 className="text-4xl font-heading font-bold mb-2 tracking-tight">
             Welcome back, {client.name.split(" ")[0]}
           </h1>
           <p className="text-muted-foreground text-lg max-w-2xl">
-            Here is the current status of your projects and financial overview
-            with {freelancerName}.
+            Here is the current status of your projects and financial overview with {freelancerName}.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
@@ -178,20 +158,10 @@ export default async function ClientPortalPage({
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Active Projects
-                    </p>
-                    <p className="text-3xl font-bold">
-                      {activeProjects.length}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Active Projects</p>
+                    <p className="text-3xl font-bold">{activeProjects.length}</p>
                   </div>
-                  <div
-                    className="p-3 "
-                    style={{
-                      backgroundColor: `${brandColor}15`,
-                      color: brandColor,
-                    }}
-                  >
+                  <div className="p-3" style={{ backgroundColor: `${brandColor}15`, color: brandColor }}>
                     <FolderOpen className="h-5 w-5" />
                   </div>
                 </div>
@@ -202,9 +172,7 @@ export default async function ClientPortalPage({
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Outstanding Balance
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Outstanding Balance</p>
                     <p className="text-3xl font-bold text-destructive">
                       {new Intl.NumberFormat("en-US", {
                         style: "currency",
@@ -212,7 +180,7 @@ export default async function ClientPortalPage({
                       }).format(totalOutstanding)}
                     </p>
                   </div>
-                  <div className="p-3  bg-destructive/10 text-destructive">
+                  <div className="p-3 bg-destructive/10 text-destructive">
                     <FileText className="h-5 w-5" />
                   </div>
                 </div>
@@ -223,14 +191,10 @@ export default async function ClientPortalPage({
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Completed Operations
-                    </p>
-                    <p className="text-3xl font-bold">
-                      {completedProjects.length + paidInvoices.length}
-                    </p>
+                    <p className="text-sm font-medium text-muted-foreground">Completed Operations</p>
+                    <p className="text-3xl font-bold">{completedProjects.length + paidInvoices.length}</p>
                   </div>
-                  <div className="p-3  bg-muted text-muted-foreground">
+                  <div className="p-3 bg-muted text-muted-foreground">
                     <Building2 className="h-5 w-5" />
                   </div>
                 </div>
@@ -240,13 +204,11 @@ export default async function ClientPortalPage({
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Projects Column */}
           <div className="lg:col-span-2 space-y-6">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <FolderOpen className="h-6 w-6 text-muted-foreground" />
               Active Projects
             </h2>
-
             {activeProjects.length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-border/50 text-muted-foreground">
                 No active projects right now.
@@ -254,14 +216,8 @@ export default async function ClientPortalPage({
             ) : (
               <div className="space-y-4">
                 {activeProjects.map((project) => (
-                  <Card
-                    key={project.id}
-                    className="overflow-hidden border-border/50 shadow-sm"
-                  >
-                    <div
-                      className="h-1.5 w-full"
-                      style={{ backgroundColor: brandColor }}
-                    />
+                  <Card key={project.id} className="overflow-hidden border-border/50 shadow-sm">
+                    <div className="h-1.5 w-full" style={{ backgroundColor: brandColor }} />
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
@@ -291,11 +247,7 @@ export default async function ClientPortalPage({
                               <PortalAttachment
                                 key={att.id}
                                 att={att}
-                                icon={getCategoryIcon(
-                                  att.category,
-                                  "h-4 w-4",
-                                  true,
-                                )}
+                                icon={getCategoryIcon(att.category, "h-4 w-4", true)}
                               />
                             ))}
                           </div>
@@ -308,7 +260,6 @@ export default async function ClientPortalPage({
             )}
           </div>
 
-          {/* Invoices Column */}
           <div className="space-y-6">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <FileText className="h-6 w-6 text-muted-foreground" />
@@ -317,13 +268,11 @@ export default async function ClientPortalPage({
 
             {unpaidInvoices.length > 0 && (
               <div className="space-y-3">
-                <p className="text-sm font-medium text-destructive px-1">
-                  Action Required
-                </p>
+                <p className="text-sm font-medium text-destructive px-1">Action Required</p>
                 {unpaidInvoices.map((invoice) => (
                   <a
                     key={invoice.id}
-                    href={`/invoice/${invoice.id}`}
+                    href={`/${lang}/invoice/${invoice.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block group"
@@ -338,8 +287,7 @@ export default async function ClientPortalPage({
                             }).format(invoice.amount)}
                           </p>
                           <p className="text-xs text-muted-foreground uppercase tracking-wider mt-0.5">
-                            {(profile?.invoicePrefix || "INV-") +
-                              invoice.invoiceNumber}
+                            {(profile?.invoicePrefix || "INV-") + invoice.invoiceNumber}
                           </p>
                         </div>
                         <div
@@ -357,13 +305,11 @@ export default async function ClientPortalPage({
 
             {paidInvoices.length > 0 && (
               <div className="space-y-3 pt-6">
-                <p className="text-sm font-medium text-muted-foreground px-1">
-                  Paid & Settled
-                </p>
+                <p className="text-sm font-medium text-muted-foreground px-1">Paid & Settled</p>
                 {paidInvoices.slice(0, 5).map((invoice) => (
                   <a
                     key={invoice.id}
-                    href={`/invoice/${invoice.id}`}
+                    href={`/${lang}/invoice/${invoice.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block opacity-80 hover:opacity-100 transition-opacity"
@@ -378,14 +324,10 @@ export default async function ClientPortalPage({
                             }).format(invoice.amount)}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Paid{" "}
-                            {new Date(invoice.updatedAt).toLocaleDateString()}
+                            Paid {new Date(invoice.updatedAt).toLocaleDateString()}
                           </p>
                         </div>
-                        <Badge
-                          variant="outline"
-                          className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                        >
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
                           Paid
                         </Badge>
                       </CardContent>
@@ -398,7 +340,6 @@ export default async function ClientPortalPage({
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="container max-w-5xl mx-auto px-4 py-8 mt-12 border-t border-border/40 text-center flex flex-col items-center justify-center">
         <p className="text-sm text-muted-foreground">
           Secure Client Portal provided by {freelancerName}
@@ -407,9 +348,7 @@ export default async function ClientPortalPage({
           (client.user.subscriptionStatus !== "active" &&
             client.user.subscriptionStatus !== "past_due")) && (
           <div className="mt-4 opacity-50 grayscale scale-90">
-            <p className="text-xs font-medium tracking-widest uppercase">
-              Powered by FreelanceHub
-            </p>
+            <p className="text-xs font-medium tracking-widest uppercase">Powered by FreelanceHub</p>
           </div>
         )}
       </footer>

@@ -35,6 +35,13 @@ import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { FREE_LIMITS } from "@/lib/subscription/limits";
+import { UpgradeModal } from "@/components/upgrade-modal";
+import {
+  locales,
+  freeLocales,
+  LOCALE_DISPLAY_NAMES,
+} from "@/lib/i18n/config";
+import type { Locale, FreeLocale } from "@/lib/i18n/config";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -140,6 +147,18 @@ export function SettingsContent() {
   const [timezonePref, setTimezonePref] = useState("UTC");
   const [dateFormatPref, setDateFormatPref] = useState("MM/DD/YYYY");
   const [paymentDetailsPref, setPaymentDetailsPref] = useState("");
+  const [languagePref, setLanguagePref] = useState<Locale>(() => {
+    // Initialize from URL locale — this is the actual active locale
+    if (typeof window !== "undefined") {
+      const seg = window.location.pathname.split("/")[1];
+      if (seg && ["en", "es", "fr", "de", "zh-CN", "ar"].includes(seg)) {
+        return seg as Locale;
+      }
+    }
+    return "en";
+  });
+  const [showLanguageUpgradeModal, setShowLanguageUpgradeModal] =
+    useState(false);
 
   const { setTheme } = useTheme();
 
@@ -181,6 +200,8 @@ export function SettingsContent() {
         if (d.timezone) setTimezonePref(d.timezone);
         if (d.dateFormat) setDateFormatPref(d.dateFormat);
         if (d.paymentDetails) setPaymentDetailsPref(d.paymentDetails);
+        // Note: language is initialized from the URL locale, not the DB value,
+        // so we don't override it here.
       });
   }, []);
 
@@ -249,6 +270,44 @@ export function SettingsContent() {
     }
   };
 
+  const handleLanguageChange = async (locale: Locale) => {
+    const isProLocale = !(freeLocales as readonly string[]).includes(locale);
+    if (isProLocale && !isPro) {
+      setShowLanguageUpgradeModal(true);
+      return;
+    }
+
+    setLanguagePref(locale);
+    setIsSavingPref(true);
+    try {
+      const res = await fetch("/api/settings/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language: locale }),
+      });
+      if (res.status === 403) {
+        const body = await res.json();
+        if (body.code === "UPGRADE_REQUIRED") {
+          setShowLanguageUpgradeModal(true);
+          setLanguagePref(languagePref); // revert
+          return;
+        }
+      }
+      if (!res.ok) throw new Error();
+
+      // Update cookie and navigate to new locale path via router (no reload)
+      document.cookie = `NEXT_LOCALE=${locale}; Max-Age=31536000; Path=/; SameSite=Lax`;
+      const segments = window.location.pathname.split("/");
+      segments[1] = locale;
+      router.push(segments.join("/") + window.location.search);
+    } catch {
+      toast.error("Failed to update language");
+      setLanguagePref(languagePref); // revert on error
+    } finally {
+      setIsSavingPref(false);
+    }
+  };
+
   const handleSaveBranding = async () => {
     setIsSavingBrand(true);
     try {
@@ -304,6 +363,11 @@ export function SettingsContent() {
 
   return (
     <div className="space-y-6 max-w-3xl">
+      <UpgradeModal
+        isOpen={showLanguageUpgradeModal}
+        onClose={() => setShowLanguageUpgradeModal(false)}
+        resource="language"
+      />
       {/* Header */}
       <div>
         <h2 className="text-3xl font-bold font-heading">Settings</h2>
@@ -557,6 +621,49 @@ export function SettingsContent() {
                   </Select>
                 </div>
 
+                <div className="flex items-center justify-between py-2 border-t border-border">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-medium">Language</Label>
+                    <p className="text-xs text-muted-foreground mr-6">
+                      Choose the language used across the application.
+                    </p>
+                  </div>
+                  <Select
+                    value={languagePref}
+                    onValueChange={(val) => handleLanguageChange(val as Locale)}
+                    disabled={isSavingPref}
+                  >
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue placeholder="Language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locales.map((locale) => {
+                        const isProLocale = !(
+                          freeLocales as readonly string[]
+                        ).includes(locale);
+                        const isDisabled = isProLocale && !isPro;
+                        return (
+                          <SelectItem
+                            key={locale}
+                            value={locale}
+                            disabled={isDisabled}
+                            className={cn(isDisabled && "opacity-60")}
+                          >
+                            <span className="flex items-center gap-2">
+                              {LOCALE_DISPLAY_NAMES[locale]}
+                              {isDisabled && (
+                                <span className="text-xs px-1 py-0.5 bg-primary/10 text-primary rounded-full font-semibold">
+                                  Pro
+                                </span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="flex flex-col gap-2 py-3 border-t border-border">
                   <div className="space-y-0.5">
                     <Label className="text-sm font-medium">
@@ -575,7 +682,7 @@ export function SettingsContent() {
                       handleUpdatePref("paymentDetails", e.target.value)
                     }
                     placeholder="e.g. Please wire funds to Account #12345678, Routing #987654321..."
-                    className="min-h-[120px] w-full p-3 text-sm bg-background border border-input rounded-none focus:outline-none focus:ring-1 focus:ring-ring resize-y"
+                    className="min-h-[120px] max-h-[200px] w-full p-3 text-sm bg-background border border-input rounded-none focus:outline-none focus:ring-1 focus:ring-ring resize-y"
                     disabled={isSavingPref}
                   />
                 </div>
