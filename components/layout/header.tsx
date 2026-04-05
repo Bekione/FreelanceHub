@@ -14,14 +14,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
-const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
-  "/projects": "Projects",
-  "/invoices": "Invoices",
-  "/clients": "Clients",
-  "/time-tracking": "Time Tracking",
-  "/profile": "Profile",
+const pageTitleKeys: Record<string, string> = {
+  "/dashboard":    "nav.dashboard",
+  "/projects":     "nav.projects",
+  "/invoices":     "nav.invoices",
+  "/clients":      "nav.clients",
+  "/time-tracking":"nav.timeTracking",
+  "/profile":      "nav.profile",
+  "/settings":     "nav.settings",
 };
 
 interface HeaderProps {
@@ -32,6 +34,7 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
   const router = useRouter();
   const { data: session } = useSession();
   const user = session?.user;
+  const t = useTranslation();
 
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
@@ -43,7 +46,8 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
 
   useEffect(() => setMounted(true), []);
 
-  const pageTitle = pageTitles[pathWithoutLocale] ?? "FreelanceHub";
+  const titleKey = pageTitleKeys[pathWithoutLocale];
+  const pageTitle = titleKey ? t(titleKey) : "FreelanceHub";
 
   const cycleTheme = () => {
     if (theme === "light") setTheme("dark");
@@ -159,7 +163,7 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
                 ) : (
                   <LogOut className="mr-2 h-4 w-4" />
                 )}
-                <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
+                <span>{isLoggingOut ? t("common.loading") : "Log out"}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

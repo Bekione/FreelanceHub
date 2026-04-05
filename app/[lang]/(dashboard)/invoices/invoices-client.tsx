@@ -60,6 +60,7 @@ import {
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 type InvoiceStatus = Invoice["status"];
 
@@ -267,10 +268,10 @@ export function InvoicesContent() {
         setShowUpgradeModal(true);
         return;
       }
-      toast.error("Failed", { description: result.error });
+      toast.error(t("toasts.failed"), { description: result.error });
       return;
     }
-    toast.success(editingInvoice ? "Invoice updated" : "Invoice created");
+    toast.success(editingInvoice ? t("toasts.invoiceUpdated") : t("toasts.invoiceCreated"));
     setIsFormOpen(false);
   };
 
@@ -281,10 +282,10 @@ export function InvoicesContent() {
     setIsDeleting(false);
     if (result.error) {
       // Keep dialog open — let user read the error
-      toast.error("Failed to delete", { description: result.error });
+      toast.error(t("toasts.failedToDelete"), { description: result.error });
       return;
     }
-    toast.success("Invoice deleted");
+    toast.success(t("toasts.invoiceDeleted"));
     setIsDeleteOpen(false);
   };
 
@@ -293,10 +294,10 @@ export function InvoicesContent() {
     const result = await markInvoicePaid(id);
     setMarkingPaidId(null);
     if (result.error) {
-      toast.error("Failed", { description: result.error });
+      toast.error(t("toasts.failed"), { description: result.error });
       return;
     }
-    toast.success("Invoice marked as paid");
+    toast.success(t("toasts.invoiceMarkedPaid"));
   };
 
   // Only show the full table skeleton on the very first load
@@ -304,6 +305,7 @@ export function InvoicesContent() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const { data: session } = useSession();
+  const t = useTranslation();
   const isPro =
     (session?.user as any)?.subscriptionStatus === "active" ||
     (session?.user as any)?.subscriptionStatus === "past_due";
@@ -326,16 +328,16 @@ export function InvoicesContent() {
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold font-heading">Invoices</h2>
+            <h2 className="text-3xl font-bold font-heading">{t("invoices.title")}</h2>
             <p className="text-muted-foreground mt-1">
-              Track and manage your client invoices.
+              {t("invoices.subtitle")}
             </p>
           </div>
           <div className="flex items-center gap-3">
             {!showSkeleton && invoicesMeta && !isPro && (
               <div className="hidden sm:flex flex-col items-end gap-1">
                 <span className="text-xs text-muted-foreground">
-                  {totalInvoices} / {FREE_LIMITS.invoicesPerMonth} this month
+                  {totalInvoices} / {FREE_LIMITS.invoicesPerMonth} {t("invoices.usedOf")}
                 </span>
                 <div className="w-32 h-1.5 bg-muted overflow-hidden">
                   <div
@@ -356,11 +358,11 @@ export function InvoicesContent() {
             >
               {!isPro && atLimit ? (
                 <>
-                  <Zap className="mr-2 h-4 w-4" /> Upgrade for More
+                  <Zap className="mr-2 h-4 w-4" /> {t("common.upgrade")}
                 </>
               ) : (
                 <>
-                  <Plus className="mr-2 h-4 w-4" /> New Invoice
+                  <Plus className="mr-2 h-4 w-4" /> {t("invoices.new")}
                 </>
               )}
             </Button>
@@ -370,14 +372,14 @@ export function InvoicesContent() {
         {/* Summary Cards */}
         <div className="grid gap-4 md:grid-cols-3">
           {[
-            { label: "Total", value: totalAmount, color: "" },
+            { label: t("invoices.total"), value: totalAmount, color: "" },
             {
-              label: "Paid",
+              label: t("invoices.paid"),
               value: paidAmount,
               color: "text-green-600 dark:text-green-500",
             },
             {
-              label: "Pending / Overdue",
+              label: t("invoices.pendingOverdue"),
               value: pendingAmount,
               color: "text-orange-600 dark:text-orange-500",
             },
@@ -416,7 +418,7 @@ export function InvoicesContent() {
           <div className="relative flex items-center flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by invoice # or client..."
+              placeholder={t("invoices.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-9 flex-1"
@@ -435,15 +437,15 @@ export function InvoicesContent() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-44">
               <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Filter status" />
+              <SelectValue placeholder={t("invoices.filterStatus")} />
             </SelectTrigger>
             <SelectContent>
               {["all", "DRAFT", "PENDING", "PAID", "OVERDUE", "CANCELLED"].map(
                 (s) => (
                   <SelectItem key={s} value={s}>
                     {s === "all"
-                      ? "All Statuses"
-                      : s.charAt(0) + s.slice(1).toLowerCase()}
+                      ? t("invoices.allStatuses")
+                      : t(`invoices.status_values.${s}` as any)}
                   </SelectItem>
                 ),
               )}
@@ -469,13 +471,13 @@ export function InvoicesContent() {
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
-                      <TableHead>Invoice #</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Project</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Due Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead>{t("invoices.invoiceNumber")}</TableHead>
+                      <TableHead>{t("invoices.client")}</TableHead>
+                      <TableHead>{t("invoices.project")}</TableHead>
+                      <TableHead>{t("invoices.amount")}</TableHead>
+                      <TableHead>{t("invoices.status")}</TableHead>
+                      <TableHead>{t("invoices.dueDate")}</TableHead>
+                      <TableHead className="text-right">{t("invoices.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -502,8 +504,7 @@ export function InvoicesContent() {
                               variant={statusVariant(invoice.status)}
                               className="capitalize text-xs"
                             >
-                              {invoice.status.charAt(0) +
-                                invoice.status.slice(1).toLowerCase()}
+                              {t(`invoices.status_values.${invoice.status}` as any)}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-muted-foreground text-sm">
@@ -516,7 +517,7 @@ export function InvoicesContent() {
                                   variant="ghost"
                                   size="icon"
                                   className="relative h-8 w-8 text-green-600"
-                                  title="Mark as Paid"
+                                  title={t("invoices.markPaid")}
                                   disabled={markingPaidId === invoice.id}
                                   onClick={() => handleMarkPaid(invoice.id)}
                                 >
@@ -539,7 +540,7 @@ export function InvoicesContent() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 hover:text-primary transition-colors"
-                                title="Print Invoice"
+                                title={t("invoices.print")}
                                 onClick={() => {
                                   const locale = window.location.pathname.split("/")[1] || "en";
                                   window.open(`/${locale}/invoices/${invoice.id}/print`, "_blank");
@@ -576,11 +577,10 @@ export function InvoicesContent() {
                           <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                             <Search className="h-8 w-8 opacity-20" />
                             <p className="font-medium text-foreground">
-                              No matching invoices found
+                              {t("invoices.noMatch")}
                             </p>
                             <p className="text-sm">
-                              We couldn&apos;t find anything matching your
-                              search filters.
+                              {t("invoices.noMatchSubtitle")}
                             </p>
                             <Button
                               variant="ghost"
@@ -590,7 +590,7 @@ export function InvoicesContent() {
                                 setStatusFilter("all");
                               }}
                             >
-                              Clear Filters
+                              {t("invoices.clearFilters")}
                             </Button>
                           </div>
                         </TableCell>
@@ -604,17 +604,17 @@ export function InvoicesContent() {
                           <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
                             <FileText className="h-8 w-8 opacity-20" />
                             <p className="font-medium text-foreground">
-                              No invoices yet
+                              {t("invoices.empty")}
                             </p>
                             <p className="text-sm">
-                              Create your first invoice to get started!
+                              {t("invoices.emptySubtitle")}
                             </p>
                             <Button
                               variant="outline"
                               className="mt-2"
                               onClick={openCreate}
                             >
-                              <Plus className="h-4 w-4 mr-2" /> Create Invoice
+                              <Plus className="h-4 w-4 mr-2" /> {t("invoices.createFirst")}
                             </Button>
                           </div>
                         </TableCell>
@@ -673,25 +673,25 @@ export function InvoicesContent() {
           <DialogContent className="sm:max-w-[520px]">
             <DialogHeader>
               <DialogTitle>
-                {editingInvoice ? "Edit Invoice" : "New Invoice"}
+                {editingInvoice ? t("invoices.form.editInvoice") : t("invoices.form.newInvoice")}
               </DialogTitle>
               <DialogDescription>
                 {editingInvoice
-                  ? "Update invoice details."
-                  : "Create a new invoice for a client."}
+                  ? t("invoices.form.editSubtitle")
+                  : t("invoices.form.createSubtitle")}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="invoiceNumber">Invoice # *</Label>
+                  <Label htmlFor="invoiceNumber">{t("invoices.form.invoiceNumber")} *</Label>
                   <Input
                     id="invoiceNumber"
                     {...register("invoiceNumber", { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Amount ($) *</Label>
+                  <Label htmlFor="amount">{t("invoices.form.amount")} *</Label>
                   <Input
                     id="amount"
                     type="number"
@@ -700,7 +700,7 @@ export function InvoicesContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Client</Label>
+                  <Label>{t("invoices.form.client")}</Label>
                   <Select
                     value={watch("clientId")}
                     onValueChange={(v) =>
@@ -710,10 +710,10 @@ export function InvoicesContent() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select client" />
+                      <SelectValue placeholder={t("invoices.form.selectClient")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">No client</SelectItem>
+                      <SelectItem value="none">{t("invoices.form.noClient")}</SelectItem>
                       {clients.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name}
@@ -723,7 +723,7 @@ export function InvoicesContent() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Project</Label>
+                  <Label>{t("invoices.form.project")}</Label>
                   <Select
                     value={watch("projectId")}
                     onValueChange={(v) =>
@@ -733,13 +733,13 @@ export function InvoicesContent() {
                     }
                   >
                     <SelectTrigger className="w-full overflow-hidden [&>span]:truncate [&>span]:block">
-                      <SelectValue placeholder="Select project" />
+                      <SelectValue placeholder={t("invoices.form.selectProject")} />
                     </SelectTrigger>
                     <SelectContent
                       position="popper"
                       className="max-h-[300px] w-(--radix-select-trigger-width)"
                     >
-                      <SelectItem value="none">No project</SelectItem>
+                      <SelectItem value="none">{t("invoices.form.noProject")}</SelectItem>
                       {projectsForForm.map((p) => (
                         <SelectItem
                           key={p.id}
@@ -756,7 +756,7 @@ export function InvoicesContent() {
                 {/* Status — only shown when editing */}
                 {editingInvoice && (
                   <div className="col-span-2 space-y-2">
-                    <Label>Status</Label>
+                    <Label>{t("invoices.form.status")}</Label>
                     <Select
                       value={watch("status")}
                       onValueChange={(v) =>
@@ -779,7 +779,7 @@ export function InvoicesContent() {
                           ] as const
                         ).map((s) => (
                           <SelectItem key={s} value={s}>
-                            {s.charAt(0) + s.slice(1).toLowerCase()}
+                            {t(`invoices.status_values.${s}` as any)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -787,7 +787,7 @@ export function InvoicesContent() {
                   </div>
                 )}
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="dueDate">Due Date *</Label>
+                  <Label htmlFor="dueDate">{t("invoices.form.dueDate")} *</Label>
                   <Input
                     id="dueDate"
                     type="date"
@@ -795,10 +795,10 @@ export function InvoicesContent() {
                   />
                 </div>
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
+                  <Label htmlFor="notes">{t("invoices.form.notes")}</Label>
                   <Textarea
                     id="notes"
-                    placeholder="Payment terms, notes..."
+                    placeholder={t("invoices.form.notesPlaceholder")}
                     {...register("notes")}
                     rows={3}
                   />
@@ -810,13 +810,13 @@ export function InvoicesContent() {
                   variant="outline"
                   onClick={() => setIsFormOpen(false)}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={isSubmitting || !isDirty}>
                   {isSubmitting && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  {editingInvoice ? "Save Changes" : "Create Invoice"}
+                  {editingInvoice ? t("invoices.form.saveChanges") : t("invoices.form.createInvoice")}
                 </Button>
               </DialogFooter>
             </form>
@@ -827,16 +827,15 @@ export function InvoicesContent() {
         <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Delete Invoice</DialogTitle>
+              <DialogTitle>{t("invoices.delete.title")}</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete invoice{" "}
-                <strong>{deletingInvoice?.invoiceNumber}</strong>? This cannot
-                be undone.
+                {t("invoices.delete.description")}{" "}
+                <strong>{deletingInvoice?.invoiceNumber}</strong>? {t("invoices.delete.cannotUndo")}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -846,7 +845,7 @@ export function InvoicesContent() {
                 {isDeleting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Delete Invoice
+                {t("invoices.delete.confirm")}
               </Button>
             </DialogFooter>
           </DialogContent>

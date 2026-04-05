@@ -40,9 +40,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 function SubscriptionCard({ isPro }: { isPro: boolean }) {
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const t = useTranslation();
 
   const handleManageSubscription = async () => {
     setLoadingPortal(true);
@@ -54,11 +56,11 @@ function SubscriptionCard({ isPro }: { isPro: boolean }) {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        toast.error("Could not open billing portal");
+        toast.error(t("toasts.couldNotOpenBillingPortal"));
         setLoadingPortal(false);
       }
     } catch {
-      toast.error("Something went wrong");
+      toast.error(t("toasts.somethingWentWrong"));
       setLoadingPortal(false);
     }
   };
@@ -68,9 +70,9 @@ function SubscriptionCard({ isPro }: { isPro: boolean }) {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Zap className="h-5 w-5 text-primary" />
-          <CardTitle>Subscription</CardTitle>
+          <CardTitle>{t("profile.subscription")}</CardTitle>
         </div>
-        <CardDescription>Manage your FreelanceHub plan.</CardDescription>
+        <CardDescription>{t("profile.subscriptionDesc")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex items-center justify-between p-4 border border-border bg-muted/20">
@@ -84,8 +86,8 @@ function SubscriptionCard({ isPro }: { isPro: boolean }) {
               </p>
               <p className="text-xs text-muted-foreground">
                 {isPro
-                  ? "$5/month · Auto-renews"
-                  : "Upgrade to unlock Pro features"}
+                  ? t("profile.proMonthly")
+                  : t("profile.freeUpgrade")}
               </p>
             </div>
           </div>
@@ -94,7 +96,7 @@ function SubscriptionCard({ isPro }: { isPro: boolean }) {
               variant="default"
               className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
             >
-              ⚡ Active
+              ⚡ {t("settings.active")}
             </Badge>
           ) : (
             <Badge variant="outline">Free</Badge>
@@ -113,13 +115,13 @@ function SubscriptionCard({ isPro }: { isPro: boolean }) {
             ) : (
               <ExternalLink className="mr-2 h-4 w-4" />
             )}
-            Manage Subscription
+            {t("profile.manageSubscription")}
           </Button>
         ) : (
           <Button asChild>
             <Link href="/checkout">
               <Zap className="mr-2 h-4 w-4" />
-              Upgrade to Pro — $5/mo
+              {t("profile.upgradePro")}
             </Link>
           </Button>
         )}
@@ -131,6 +133,7 @@ function SubscriptionCard({ isPro }: { isPro: boolean }) {
 export function ProfileContent() {
   const router = useRouter();
   const { data: session } = useSession();
+  const t = useTranslation();
   const user = session?.user;
   const isPro =
     (user as any)?.subscriptionStatus === "active" ||
@@ -177,25 +180,23 @@ export function ProfileContent() {
     setIsUpdatingProfile(false);
 
     if (error) {
-      toast.error("Failed to update profile", { description: error.message });
+      toast.error(t("toasts.failedToUpdateProfile"), { description: error.message });
       return;
     }
 
-    toast.success("Success", { description: "Profile updated successfully" });
+    toast.success(t("toasts.profileUpdated"));
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error("Error", { description: "New passwords don't match" });
+      toast.error(t("toasts.passwordMismatch"));
       return;
     }
 
     if (passwordData.newPassword.length < 8) {
-      toast.error("Error", {
-        description: "Password must be at least 8 characters",
-      });
+      toast.error(t("toasts.passwordTooShort"));
       return;
     }
 
@@ -212,17 +213,17 @@ export function ProfileContent() {
     if (error) {
       // Very common error for users who signed up exclusively through Google
       if (error.status === 400 || error.message?.includes("password")) {
-        toast.error("Error changing password", {
+        toast.error(t("toasts.failedToChangePassword"), {
           description:
             error.message || "You may have signed up using a social account.",
         });
       } else {
-        toast.error("Error", { description: error.message });
+        toast.error(t("toasts.failed"), { description: error.message });
       }
       return;
     }
 
-    toast.success("Success", { description: "Password updated successfully" });
+    toast.success(t("toasts.passwordUpdated"));
     setPasswordData({
       currentPassword: "",
       newPassword: "",
@@ -240,7 +241,7 @@ export function ProfileContent() {
         password: deletePassword,
       });
       if (pwdError) {
-        toast.error("Incorrect password", { description: pwdError.message });
+        toast.error(t("toasts.incorrectPassword"), { description: pwdError.message });
         setIsDeleting(false);
         return;
       }
@@ -259,12 +260,12 @@ export function ProfileContent() {
     const { error } = await authClient.deleteUser({});
 
     if (error) {
-      toast.error("Failed to delete account", { description: error.message });
+      toast.error(t("toasts.failedToDeleteAccount"), { description: error.message });
       setIsDeleting(false);
       return;
     }
 
-    toast.success("Account deleted");
+    toast.success(t("toasts.accountDeleted"));
     setIsDeleteDialogOpen(false);
     router.push("/login");
   };
@@ -314,13 +315,13 @@ export function ProfileContent() {
       const { error } = await authClient.updateUser({ image: url });
 
       if (error) {
-        toast.error("Profile update failed", { description: error.message });
+        toast.error(t("toasts.failedToUpdateProfile"), { description: error.message });
       } else {
-        toast.success("Avatar updated successfully");
+        toast.success(t("toasts.avatarUpdated"));
       }
     } catch (err: any) {
-      toast.error("Upload error", {
-        description: err.message || "Something went wrong.",
+      toast.error(t("toasts.failedToUploadAvatar"), {
+        description: err.message || t("toasts.somethingWentWrong"),
       });
     } finally {
       setIsUploadingAvatar(false);
@@ -334,9 +335,9 @@ export function ProfileContent() {
     setIsRemovingAvatar(false);
 
     if (error) {
-      toast.error("Failed to remove avatar", { description: error.message });
+      toast.error(t("toasts.failedToRemoveAvatar"), { description: error.message });
     } else {
-      toast.success("Avatar removed");
+      toast.success(t("toasts.avatarRemoved"));
     }
   };
 
@@ -352,9 +353,9 @@ export function ProfileContent() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-10">
       <div>
-        <h2 className="text-3xl font-bold font-heading">Profile Settings</h2>
+        <h2 className="text-3xl font-bold font-heading">{t("profile.title")}</h2>
         <p className="text-muted-foreground mt-1">
-          Manage your account information, security, and preferences.
+          {t("profile.subtitle")}
         </p>
       </div>
 
@@ -380,9 +381,9 @@ export function ProfileContent() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <User className="h-5 w-5 text-primary" />
-                  <CardTitle>Personal Information</CardTitle>
+                  <CardTitle>{t("profile.personalInfo")}</CardTitle>
                 </div>
-                <CardDescription>Update your personal details.</CardDescription>
+                <CardDescription>{t("profile.personalInfoDesc")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Avatar Section */}
@@ -416,7 +417,7 @@ export function ProfileContent() {
                         ) : (
                           <Camera className="mr-2 h-4 w-4" />
                         )}
-                        {isUploadingAvatar ? "Uploading..." : "Change Avatar"}
+                        {isUploadingAvatar ? t("profile.uploading") : t("profile.uploadPhoto")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -430,11 +431,11 @@ export function ProfileContent() {
                         {isRemovingAvatar ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : null}
-                        Remove
+                        {t("profile.removePhoto")}
                       </Button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      JPG, GIF or PNG. Max size of 800K
+                      {t("profile.avatarHint")}
                     </p>
                   </div>
                 </div>
@@ -442,7 +443,7 @@ export function ProfileContent() {
                 <form onSubmit={handleUpdateProfile} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
+                      <Label htmlFor="name">{t("profile.fullName")}</Label>
                       <Input
                         id="name"
                         value={profileData.name}
@@ -454,7 +455,7 @@ export function ProfileContent() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address</Label>
+                      <Label htmlFor="email">{t("profile.emailAddress")}</Label>
                       <Input
                         id="email"
                         type="email"
@@ -463,7 +464,7 @@ export function ProfileContent() {
                         className="bg-muted"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Emails cannot be changed directly at this time.
+                        {t("profile.emailHint")}
                       </p>
                     </div>
                   </div>
@@ -473,12 +474,12 @@ export function ProfileContent() {
                       {isUpdatingProfile ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
+                          {t("profile.saving")}
                         </>
                       ) : (
                         <>
                           <Save className="mr-2 h-4 w-4" />
-                          Save Personal Details
+                          {t("profile.saveChanges")}
                         </>
                       )}
                     </Button>
@@ -498,16 +499,16 @@ export function ProfileContent() {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-5 w-5 text-primary" />
-                  <CardTitle>Change Password</CardTitle>
+                  <CardTitle>{t("profile.changePassword")}</CardTitle>
                 </div>
                 <CardDescription>
-                  Update your password to keep your account secure.
+                  {t("profile.passwordDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleChangePassword} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
+                    <Label htmlFor="currentPassword">{t("profile.currentPassword")}</Label>
                     <Input
                       id="currentPassword"
                       type="password"
@@ -525,7 +526,7 @@ export function ProfileContent() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="newPassword">New Password</Label>
+                      <Label htmlFor="newPassword">{t("profile.newPassword")}</Label>
                       <Input
                         id="newPassword"
                         type="password"
@@ -543,7 +544,7 @@ export function ProfileContent() {
 
                     <div className="space-y-2">
                       <Label htmlFor="confirmPassword">
-                        Confirm New Password
+                        {t("profile.confirmPassword")}
                       </Label>
                       <Input
                         id="confirmPassword"
@@ -566,12 +567,12 @@ export function ProfileContent() {
                       {isChangingPassword ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Updating...
+                          {t("profile.updating")}
                         </>
                       ) : (
                         <>
                           <Save className="mr-2 h-4 w-4" />
-                          Update Password
+                          {t("profile.updatePassword")}
                         </>
                       )}
                     </Button>
@@ -590,16 +591,15 @@ export function ProfileContent() {
               <CardHeader>
                 <div className="flex items-center gap-2 text-destructive">
                   <AlertTriangle className="h-5 w-5" />
-                  <CardTitle>Danger Zone</CardTitle>
+                  <CardTitle>{t("profile.deleteAccount")}</CardTitle>
                 </div>
                 <CardDescription>
-                  Permanently delete your account and all associated data.
+                  {t("profile.deleteAccountDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-foreground mb-4">
-                  Once you delete your account, there is no going back. Please
-                  be certain.
+                  {t("profile.deleteWarning")}
                 </p>
                 <Dialog
                   open={isDeleteDialogOpen}
@@ -612,35 +612,31 @@ export function ProfileContent() {
                   }}
                 >
                   <DialogTrigger asChild>
-                    <Button variant="destructive">Delete Account</Button>
+                    <Button variant="destructive">{t("profile.deleteAccount")}</Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                       {deleteStep === 1 ? (
                         <>
-                          <DialogTitle>Are you absolutely sure?</DialogTitle>
+                          <DialogTitle>{t("profile.areYouSure")}</DialogTitle>
                           <DialogDescription>
-                            This will permanently delete your account and all
-                            associated data. This action cannot be undone.
+                            {t("profile.deleteDialogDesc")}
                           </DialogDescription>
                           {isPro && (
                             <div className="mt-3 p-3 bg-amber-500/10 text-amber-600 dark:text-amber-500 rounded-md border border-amber-500/20 text-sm">
                               <AlertTriangle className="inline h-4 w-4 mr-2 mb-0.5" />
-                              <strong>Active Pro subscription:</strong> Deleting
-                              your account will discard unused days in your
-                              billing cycle with no refund.
+                              {t("profile.proDeleteWarning")}
                             </div>
                           )}
                         </>
                       ) : (
                         <>
-                          <DialogTitle>Confirm your identity</DialogTitle>
+                          <DialogTitle>{t("profile.confirmIdentity")}</DialogTitle>
                           <DialogDescription>
-                            Enter your password to permanently delete your
-                            account.
+                            {t("profile.confirmIdentityDesc")}
                           </DialogDescription>
                           <div className="mt-3 space-y-2">
-                            <Label htmlFor="deletePassword">Password</Label>
+                            <Label htmlFor="deletePassword">{t("profile.password")}</Label>
                             <Input
                               id="deletePassword"
                               type="password"
@@ -652,7 +648,7 @@ export function ProfileContent() {
                               autoFocus
                             />
                             <span className="text-xs text-muted-foreground">
-                              Google sign-in users: leave this blank.
+                              {t("profile.googleHint")}
                             </span>
                           </div>
                         </>
@@ -671,14 +667,14 @@ export function ProfileContent() {
                         }}
                         disabled={isDeleting}
                       >
-                        {deleteStep === 2 ? "Back" : "Cancel"}
+                        {deleteStep === 2 ? t("profile.back") : t("common.cancel")}
                       </Button>
                       {deleteStep === 1 ? (
                         <Button
                           variant="destructive"
                           onClick={() => setDeleteStep(2)}
                         >
-                          Continue
+                          {t("profile.continue")}
                         </Button>
                       ) : (
                         <Button
@@ -689,10 +685,10 @@ export function ProfileContent() {
                           {isDeleting ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Deleting...
+                              {t("profile.deleting")}
                             </>
                           ) : (
-                            "Delete my account"
+                            t("profile.deleteConfirm")
                           )}
                         </Button>
                       )}

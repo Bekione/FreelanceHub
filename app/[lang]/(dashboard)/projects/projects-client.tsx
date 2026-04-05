@@ -63,14 +63,15 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 type ProjectStatus = Project["status"];
 
-const STATUS_OPTIONS: { value: ProjectStatus; label: string }[] = [
-  { value: "PENDING", label: "Pending" },
-  { value: "ACTIVE", label: "Active" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "ARCHIVED", label: "Archived" },
+const STATUS_OPTIONS: { value: ProjectStatus }[] = [
+  { value: "PENDING" },
+  { value: "ACTIVE" },
+  { value: "COMPLETED" },
+  { value: "ARCHIVED" },
 ];
 
 const PLATFORM_OPTIONS = [
@@ -84,11 +85,11 @@ const PLATFORM_OPTIONS = [
 ];
 
 const PROJECT_CATEGORIES = [
-  { value: "development", label: "Development / Code" },
-  { value: "design", label: "Design / UI" },
-  { value: "copywriting", label: "Copywriting / Writing" },
-  { value: "video", label: "Video / Media" },
-  { value: "other", label: "Other" },
+  { value: "development" },
+  { value: "design" },
+  { value: "copywriting" },
+  { value: "video" },
+  { value: "other" },
 ];
 
 function statusVariant(status: ProjectStatus) {
@@ -286,7 +287,7 @@ export function ProjectsContent() {
         setShowUpgradeModal(true);
         return;
       }
-      toast.error("Failed", { description: result.error });
+      toast.error(t("toasts.failed"), { description: result.error });
       return;
     }
     // Auto-create a draft invoice if checkbox was checked on new projects
@@ -303,7 +304,7 @@ export function ProjectsContent() {
         status: "DRAFT",
       } as any);
     }
-    toast.success(editingProject ? "Project updated" : "Project created");
+    toast.success(editingProject ? t("toasts.projectUpdated") : t("toasts.projectCreated"));
     setIsFormOpen(false);
   };
 
@@ -313,16 +314,17 @@ export function ProjectsContent() {
     const result = await deleteProject(deletingProject.id);
     setIsDeleting(false);
     if (result.error) {
-      toast.error("Cannot delete project", { description: result.error });
+      toast.error(t("toasts.failed"), { description: result.error });
       setIsDeleteOpen(false);
       return;
     }
-    toast.success("Project deleted");
+    toast.success(t("toasts.projectDeleted"));
     setIsDeleteOpen(false);
   };
 
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { data: session } = useSession();
+  const t = useTranslation();
   const isPro =
     (session?.user as any)?.subscriptionStatus === "active" ||
     (session?.user as any)?.subscriptionStatus === "past_due";
@@ -340,16 +342,16 @@ export function ProjectsContent() {
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold font-heading">Projects</h2>
+            <h2 className="text-3xl font-bold font-heading">{t("projects.title")}</h2>
             <p className="text-muted-foreground mt-1">
-              Manage your client projects and track progress.
+              {t("projects.subtitle")}
             </p>
           </div>
           <div className="flex items-center gap-3">
             {!isLoadingProjects && projectsMeta && !isPro && (
               <div className="hidden sm:flex flex-col items-end gap-1">
                 <span className="text-xs text-muted-foreground">
-                  {totalProjects} / {FREE_LIMITS.projects} projects used
+                  {totalProjects} / {FREE_LIMITS.projects} {t("projects.usedOf")}
                 </span>
                 <div className="w-32 h-1.5 bg-muted overflow-hidden">
                   <div
@@ -370,11 +372,11 @@ export function ProjectsContent() {
             >
               {!isPro && atLimit ? (
                 <>
-                  <Zap className="mr-2 h-4 w-4" /> Upgrade for More
+                  <Zap className="mr-2 h-4 w-4" /> {t("common.upgrade")}
                 </>
               ) : (
                 <>
-                  <Plus className="mr-2 h-4 w-4" /> Add Project
+                  <Plus className="mr-2 h-4 w-4" /> {t("projects.new")}
                 </>
               )}
             </Button>
@@ -386,7 +388,7 @@ export function ProjectsContent() {
           <div className="relative flex items-center flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search projects..."
+              placeholder={t("projects.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-9 flex-1"
@@ -405,13 +407,13 @@ export function ProjectsContent() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-44">
               <Filter className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Filter status" />
+              <SelectValue placeholder={t("projects.filterStatus")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="all">{t("projects.allStatuses")}</SelectItem>
               {STATUS_OPTIONS.map((s) => (
                 <SelectItem key={s.value} value={s.value}>
-                  {s.label}
+                  {t(`projects.status.${s.value}` as any)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -491,18 +493,18 @@ export function ProjectsContent() {
                           {project.title}
                         </CardTitle>
                         <CardDescription className="pt-1 truncate">
-                          {project.client?.name ?? "No client"}
+                          {project.client?.name ?? t("projects.noClient")}
                         </CardDescription>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4 pt-0 flex-1 flex flex-col justify-between">
                       <p className="text-sm text-muted-foreground line-clamp-2 min-h-10">
-                        {project.description || "No description."}
+                        {project.description || t("projects.noDescription")}
                       </p>
                       <div className="space-y-2">
                         {project.platform && (
                           <p className="text-xs text-muted-foreground">
-                            Via{" "}
+                            {t("projects.via")}{" "}
                             <span className="font-medium text-foreground">
                               {project.platform}
                             </span>
@@ -517,7 +519,7 @@ export function ProjectsContent() {
                                   ? new Date(
                                       project.deadline,
                                     ).toLocaleDateString()
-                                  : "No deadline"}
+                                  : t("projects.noDeadline")}
                               </span>
                             </div>
                             {(project.attachments?.length ?? 0) > 0 && (
@@ -550,11 +552,10 @@ export function ProjectsContent() {
               <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
                 <Search className="h-10 w-10 text-muted-foreground/30" />
                 <p className="text-lg font-medium text-foreground">
-                  No matching projects found
+                  {t("projects.noMatch")}
                 </p>
                 <p className="text-sm text-muted-foreground max-w-sm text-center">
-                  We couldn&apos;t find anything matching your search. Try
-                  adjusting your query or filters.
+                  {t("projects.noMatchSubtitle")}
                 </p>
                 <Button
                   variant="ghost"
@@ -564,20 +565,20 @@ export function ProjectsContent() {
                     setStatusFilter("all");
                   }}
                 >
-                  Clear Filters
+                  {t("projects.clearFilters")}
                 </Button>
               </div>
             ) : (
               <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
                 <FolderOpen className="h-10 w-10 text-muted-foreground/50" />
                 <p className="text-lg font-medium text-muted-foreground">
-                  No projects yet
+                  {t("projects.empty")}
                 </p>
                 <p className="text-sm text-muted-foreground/60">
-                  Get started by creating your first project!
+                  {t("projects.emptySubtitle")}
                 </p>
                 <Button variant="outline" className="mt-4" onClick={openCreate}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Your First Project
+                  <Plus className="mr-2 h-4 w-4" /> {t("projects.addFirst")}
                 </Button>
               </div>
             )}
@@ -628,36 +629,36 @@ export function ProjectsContent() {
           <DialogContent className="sm:max-w-[540px]">
             <DialogHeader>
               <DialogTitle>
-                {editingProject ? "Edit Project" : "New Project"}
+                {editingProject ? t("projects.form.editProject") : t("projects.form.newProject")}
               </DialogTitle>
               <DialogDescription>
                 {editingProject
-                  ? "Update project details."
-                  : "Create a new project for your work."}
+                  ? t("projects.form.editSubtitle")
+                  : t("projects.form.createSubtitle")}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
               <div className="max-h-[60vh] overflow-y-auto px-2 -mx-2 space-y-4 pb-1">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Project Title *</Label>
+                  <Label htmlFor="title">{t("projects.form.title")} *</Label>
                   <Input
                     id="title"
-                    placeholder="e.g. Website Redesign"
+                    placeholder={t("projects.form.titlePlaceholder")}
                     {...register("title", { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t("projects.form.description")}</Label>
                   <Textarea
                     id="description"
-                    placeholder="Describe the project goals..."
+                    placeholder={t("projects.form.descriptionPlaceholder")}
                     {...register("description")}
                     rows={3}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Client</Label>
+                    <Label>{t("projects.form.client")}</Label>
                     <Select
                       value={watch("clientId")}
                       onValueChange={(v) =>
@@ -667,10 +668,10 @@ export function ProjectsContent() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select client" />
+                        <SelectValue placeholder={t("projects.form.selectClient")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">No client</SelectItem>
+                        <SelectItem value="none">{t("projects.form.noClient")}</SelectItem>
                         {clients.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
                             {c.name}
@@ -680,7 +681,7 @@ export function ProjectsContent() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Status</Label>
+                    <Label>{t("projects.form.status")}</Label>
                     <Select
                       value={watch("status")}
                       onValueChange={(v) =>
@@ -695,14 +696,14 @@ export function ProjectsContent() {
                       <SelectContent>
                         {STATUS_OPTIONS.map((s) => (
                           <SelectItem key={s.value} value={s.value}>
-                            {s.label}
+                            {t(`projects.status.${s.value}` as any)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="deadline">Deadline</Label>
+                    <Label htmlFor="deadline">{t("projects.form.deadline")}</Label>
                     <Input
                       id="deadline"
                       type="date"
@@ -710,7 +711,7 @@ export function ProjectsContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="budget">Budget ($)</Label>
+                    <Label htmlFor="budget">{t("projects.form.budget")}</Label>
                     <Input
                       id="budget"
                       type="number"
@@ -719,7 +720,7 @@ export function ProjectsContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bonus">Bonus ($)</Label>
+                    <Label htmlFor="bonus">{t("projects.form.bonus")}</Label>
                     <Input
                       id="bonus"
                       type="number"
@@ -728,7 +729,7 @@ export function ProjectsContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Platform</Label>
+                    <Label>{t("projects.form.platform")}</Label>
                     <Select
                       value={watch("platform")}
                       onValueChange={(v) =>
@@ -738,10 +739,10 @@ export function ProjectsContent() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Where from?" />
+                        <SelectValue placeholder={t("projects.form.platformPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Not specified</SelectItem>
+                        <SelectItem value="none">{t("projects.form.notSpecified")}</SelectItem>
                         {PLATFORM_OPTIONS.map((p) => (
                           <SelectItem key={p} value={p}>
                             {p}
@@ -751,7 +752,7 @@ export function ProjectsContent() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Category</Label>
+                    <Label>{t("projects.form.category")}</Label>
                     <Select
                       value={watch("category")}
                       onValueChange={(v) =>
@@ -761,12 +762,12 @@ export function ProjectsContent() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Project scope" />
+                        <SelectValue placeholder={t("projects.form.categoryPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {PROJECT_CATEGORIES.map((c) => (
                           <SelectItem key={c.value} value={c.value}>
-                            {c.label}
+                            {t(`projects.categories.${c.value}` as any)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -790,7 +791,7 @@ export function ProjectsContent() {
                       htmlFor="createDraftInvoice"
                       className="text-sm cursor-pointer select-none"
                     >
-                      Auto-create a draft invoice for this project
+                      {t("projects.form.autoDraftInvoice")}
                     </label>
                   </div>
                 )}
@@ -820,13 +821,13 @@ export function ProjectsContent() {
                   variant="outline"
                   onClick={() => setIsFormOpen(false)}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={isSubmitting || !isDirty}>
                   {isSubmitting && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  {editingProject ? "Save Changes" : "Create Project"}
+                  {editingProject ? t("projects.form.updateProject") : t("projects.form.createProject")}
                 </Button>
               </DialogFooter>
             </form>
@@ -837,16 +838,15 @@ export function ProjectsContent() {
         <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Delete Project</DialogTitle>
+              <DialogTitle>{t("projects.delete.title")}</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete{" "}
-                <strong>{deletingProject?.title}</strong>? This cannot be
-                undone.
+                {t("projects.delete.description")}{" "}
+                <strong>{deletingProject?.title}</strong>? {t("projects.delete.cannotUndo")}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -856,7 +856,7 @@ export function ProjectsContent() {
                 {isDeleting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Delete Project
+                {t("projects.delete.confirm")}
               </Button>
             </DialogFooter>
           </DialogContent>

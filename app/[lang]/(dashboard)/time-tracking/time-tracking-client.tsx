@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 interface TimeEntry {
   id: string;
@@ -45,6 +46,7 @@ interface TimeEntry {
 
 export function TimeTrackingContent() {
   const { projects } = useDataStore();
+  const t = useTranslation();
   const [activeTab, setActiveTab] = useState<"timer" | "history">("timer");
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -75,13 +77,13 @@ export function TimeTrackingContent() {
 
   const handleStart = () => {
     if (!activeProject) {
-      toast.error("Please select a project first");
+      toast.error(t("toasts.selectProjectFirst"));
       return;
     }
     setIsRunning(true);
     setIsPaused(false);
-    toast.success("Timer started", {
-      description: `Tracking time for ${activeProject}`,
+    toast.success(t("toasts.timerStarted"), {
+      description: `${t("toasts.trackingFor")} ${activeProject}`,
     });
   };
 
@@ -105,8 +107,8 @@ export function TimeTrackingContent() {
     setIsPaused(false);
     setSeconds(0);
     setDescription("");
-    toast.success("Time entry saved", {
-      description: `Logged ${formatTime(seconds)} to ${activeProject}`,
+    toast.success(t("toasts.timeEntrySaved"), {
+      description: `${t("toasts.loggedTo")} ${formatTime(seconds)} ${t("toasts.to")} ${activeProject}`,
     });
   };
 
@@ -121,9 +123,9 @@ export function TimeTrackingContent() {
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold font-heading">Time Tracking</h2>
+          <h2 className="text-3xl font-bold font-heading">{t("timeTracking.title")}</h2>
           <p className="text-muted-foreground mt-1">
-            Log and manage your billable hours.
+            {t("timeTracking.subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2 p-1 bg-muted rounded-lg border border-border/50">
@@ -133,7 +135,7 @@ export function TimeTrackingContent() {
             onClick={() => setActiveTab("timer")}
             className="rounded-md h-8 text-xs px-4"
           >
-            Timer
+            {t("timeTracking.timer")}
           </Button>
           <Button
             variant={activeTab === "history" ? "secondary" : "ghost"}
@@ -141,7 +143,7 @@ export function TimeTrackingContent() {
             onClick={() => setActiveTab("history")}
             className="rounded-md h-8 text-xs px-4"
           >
-            History
+            {t("timeTracking.history")}
           </Button>
         </div>
       </div>
@@ -171,13 +173,13 @@ export function TimeTrackingContent() {
                   />
                 )}
                 <CardHeader>
-                  <CardTitle>What are you working on?</CardTitle>
+                  <CardTitle>{t("timeTracking.workingOn")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-muted-foreground ml-1">
-                        Project
+                        {t("timeTracking.project")}
                       </label>
                       <Select
                         value={activeProject}
@@ -185,7 +187,7 @@ export function TimeTrackingContent() {
                         disabled={isRunning}
                       >
                         <SelectTrigger className="bg-background">
-                          <SelectValue placeholder="Select project" />
+                          <SelectValue placeholder={t("timeTracking.selectProject")} />
                         </SelectTrigger>
                         <SelectContent>
                           {projects.map((p) => (
@@ -198,10 +200,10 @@ export function TimeTrackingContent() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-medium text-muted-foreground ml-1">
-                        Task / Description
+                        {t("timeTracking.taskDescription")}
                       </label>
                       <Input
-                        placeholder="Implementation..."
+                        placeholder={t("timeTracking.descriptionPlaceholder")}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         disabled={isRunning}
@@ -259,13 +261,13 @@ export function TimeTrackingContent() {
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <Clock className="h-4 w-4 text-primary" />
-                    Today's Summary
+                    {t("timeTracking.todaySummary")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="p-4 rounded-xl bg-muted/40 border border-border/50 text-center">
                     <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider font-semibold">
-                      Total Time
+                      {t("timeTracking.totalTime")}
                     </p>
                     <p className="text-2xl font-bold font-mono">
                       {formatTime(totalTimeToday)}
@@ -274,7 +276,7 @@ export function TimeTrackingContent() {
 
                   <div className="space-y-3">
                     <p className="text-xs font-medium text-muted-foreground">
-                      RECENT LOGS
+                      {t("timeTracking.recentLogs").toUpperCase()}
                     </p>
                     {history.slice(0, 3).length > 0 ? (
                       history.slice(0, 3).map((entry) => (
@@ -297,7 +299,7 @@ export function TimeTrackingContent() {
                       ))
                     ) : (
                       <p className="text-xs text-center py-4 text-muted-foreground italic border border-dashed rounded-lg">
-                        No entries yet today
+                        {t("timeTracking.noEntriesToday")}
                       </p>
                     )}
                   </div>
@@ -315,14 +317,14 @@ export function TimeTrackingContent() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 bg-muted/20">
                 <div>
-                  <CardTitle>Time Log History</CardTitle>
+                  <CardTitle>{t("timeTracking.timeLogHistory")}</CardTitle>
                   <CardDescription>
-                    Review and manage your past entries.
+                    {t("timeTracking.reviewEntries")}
                   </CardDescription>
                 </div>
                 <Button variant="outline" size="sm">
                   <Download className="mr-2 h-4 w-4" />
-                  Export History
+                  {t("timeTracking.exportHistory")}
                 </Button>
               </CardHeader>
               <CardContent className="p-0">
@@ -375,7 +377,7 @@ export function TimeTrackingContent() {
                               {formatTime(entry.duration)}
                             </p>
                             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                              Logged
+                              {t("timeTracking.logged")}
                             </p>
                           </div>
                           <Button
@@ -396,11 +398,10 @@ export function TimeTrackingContent() {
                     </div>
                     <div className="space-y-1">
                       <p className="text-lg font-medium text-muted-foreground">
-                        Your history is clear
+                        {t("timeTracking.historyEmpty")}
                       </p>
                       <p className="text-sm text-muted-foreground/60 max-w-xs">
-                        Start your first timer to begin logging your productive
-                        hours.
+                        {t("timeTracking.emptySubtitle")}
                       </p>
                     </div>
                     <Button
@@ -409,7 +410,7 @@ export function TimeTrackingContent() {
                       className="mt-4"
                       onClick={() => setActiveTab("timer")}
                     >
-                      <Plus className="mr-2 h-4 w-4" /> Log Custom Entry
+                      <Plus className="mr-2 h-4 w-4" /> {t("timeTracking.logCustomEntry")}
                     </Button>
                   </div>
                 )}

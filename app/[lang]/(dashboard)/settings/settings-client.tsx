@@ -43,6 +43,7 @@ import {
 } from "@/lib/i18n/config";
 import type { Locale, FreeLocale } from "@/lib/i18n/config";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/translation-context";
 import { cn } from "@/lib/utils";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -54,9 +55,9 @@ interface UsageData {
 
 // ─── Tab config ────────────────────────────────────────────────────────────────
 const TABS = [
-  { id: "account", label: "Account", icon: User },
-  { id: "billing", label: "Billing & Usage", icon: CreditCard },
-  { id: "branding", label: "Branding", icon: Palette, proOnly: true },
+  { id: "account", labelKey: "settings.account", icon: User },
+  { id: "billing", labelKey: "settings.billing", icon: CreditCard },
+  { id: "branding", labelKey: "settings.branding", icon: Palette, proOnly: true },
 ];
 
 // ─── Usage Bar ─────────────────────────────────────────────────────────────────
@@ -71,6 +72,7 @@ function UsageBar({
   limit: number;
   suffix?: string;
 }) {
+  const t = useTranslation();
   const pct = limit === Infinity ? 0 : Math.min((current / limit) * 100, 100);
   const atLimit = pct >= 100;
   const nearLimit = pct >= 80 && !atLimit;
@@ -88,7 +90,7 @@ function UsageBar({
         >
           {limit === Infinity ? (
             <span className="text-primary flex items-center gap-1">
-              <Zap className="h-3 w-3" /> Unlimited
+              <Zap className="h-3 w-3" /> {t("settings.unlimited")}
             </span>
           ) : (
             `${current} / ${limit}${suffix}`
@@ -161,6 +163,7 @@ export function SettingsContent() {
     useState(false);
 
   const { setTheme } = useTheme();
+  const t = useTranslation();
 
   // Sync tab state to URL
   const updateUrl = useCallback(() => {
@@ -182,7 +185,7 @@ export function SettingsContent() {
     fetch("/api/usage")
       .then((r) => r.json())
       .then((d) => setUsage(d))
-      .catch(() => toast.error("Failed to load usage data"))
+      .catch(() => toast.error(t("toasts.failedToLoadUsage")))
       .finally(() => setIsLoadingUsage(false));
 
     // Profile Settings
@@ -223,7 +226,7 @@ export function SettingsContent() {
     fetch("/api/usage")
       .then((r) => r.json())
       .then((d) => setUsage(d))
-      .catch(() => toast.error("Failed to load usage data"))
+      .catch(() => toast.error(t("toasts.failedToLoadUsage")))
       .finally(() => setIsLoadingUsage(false));
   }, []);
 
@@ -236,7 +239,7 @@ export function SettingsContent() {
       const { url } = await res.json();
       if (url) window.location.href = url;
     } catch {
-      toast.error("Failed to open billing portal");
+      toast.error(t("toasts.failedToBillingPortal"));
     } finally {
       setIsLoadingPortal(false);
     }
@@ -262,9 +265,9 @@ export function SettingsContent() {
         body: JSON.stringify({ [key]: value }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Preferences updated");
+      toast.success(t("toasts.preferencesUpdated"));
     } catch {
-      toast.error("Failed to update preferences");
+      toast.error(t("toasts.failedToUpdate"));
     } finally {
       setIsSavingPref(false);
     }
@@ -301,7 +304,7 @@ export function SettingsContent() {
       segments[1] = locale;
       router.push(segments.join("/") + window.location.search);
     } catch {
-      toast.error("Failed to update language");
+      toast.error(t("toasts.failedToUpdateLanguage"));
       setLanguagePref(languagePref); // revert on error
     } finally {
       setIsSavingPref(false);
@@ -317,9 +320,9 @@ export function SettingsContent() {
         body: JSON.stringify({ brandColor, invoicePrefix, brandLogoUrl }),
       });
       if (!res.ok) throw new Error();
-      toast.success("Branding updated successfully");
+      toast.success(t("toasts.brandingUpdated"));
     } catch {
-      toast.error("Failed to save branding");
+      toast.error(t("toasts.failedToSaveBranding"));
     } finally {
       setIsSavingBrand(false);
     }
@@ -345,7 +348,7 @@ export function SettingsContent() {
         if (!res.ok) errMessage = data.error || errMessage;
         else {
           setBrandLogoUrl(data.url);
-          toast.success("Brand logo uploaded");
+          toast.success(t("toasts.logoUploaded"));
           return;
         }
       } catch {
@@ -370,9 +373,9 @@ export function SettingsContent() {
       />
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold font-heading">Settings</h2>
+        <h2 className="text-3xl font-bold font-heading">{t("settings.title")}</h2>
         <p className="text-muted-foreground mt-1">
-          Manage your account, plan, and preferences.
+          {t("settings.subtitle")}
         </p>
       </div>
 
@@ -391,7 +394,7 @@ export function SettingsContent() {
             )}
           >
             <tab.icon className="h-4 w-4" />
-            {tab.label}
+            {t(tab.labelKey as any)}
             {tab.proOnly && !isPro && (
               <span className="ml-1 text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded-full font-semibold">
                 Pro
@@ -413,9 +416,9 @@ export function SettingsContent() {
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Profile Information</CardTitle>
+                <CardTitle className="text-base">{t("settings.profileInformation")}</CardTitle>
                 <CardDescription>
-                  Your personal information as shown across the app.
+                  {t("settings.profileSubtitle")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -423,7 +426,7 @@ export function SettingsContent() {
                   <div className="flex items-center justify-between py-3 border-b border-border">
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-                        Name
+                        {t("settings.name")}
                       </p>
                       <p className="text-sm font-medium">{user?.name || "—"}</p>
                     </div>
@@ -432,13 +435,13 @@ export function SettingsContent() {
                       size="sm"
                       onClick={() => router.push("/profile")}
                     >
-                      Edit
+                      {t("settings.edit")}
                     </Button>
                   </div>
                   <div className="flex items-center justify-between py-3 border-b border-border">
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-                        Email
+                        {t("settings.email")}
                       </p>
                       <p className="text-sm font-medium">
                         {user?.email || "—"}
@@ -448,7 +451,7 @@ export function SettingsContent() {
                   <div className="flex items-center justify-between py-3">
                     <div>
                       <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">
-                        Plan
+                        {t("settings.plan")}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         {isPro ? (
@@ -462,7 +465,7 @@ export function SettingsContent() {
                         )}
                         {user?.subscriptionStatus === "past_due" && (
                           <Badge variant="destructive" className="text-xs">
-                            Payment Past Due
+                            {t("settings.paymentPastDue")}
                           </Badge>
                         )}
                       </div>
@@ -472,7 +475,7 @@ export function SettingsContent() {
                         size="sm"
                         onClick={() => router.push("/checkout")}
                       >
-                        <Zap className="mr-2 h-3.5 w-3.5" /> Upgrade
+                        <Zap className="mr-2 h-3.5 w-3.5" /> {t("settings.upgrade")}
                       </Button>
                     )}
                   </div>
@@ -482,20 +485,19 @@ export function SettingsContent() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Preferences</CardTitle>
+                <CardTitle className="text-base">{t("settings.preferences")}</CardTitle>
                 <CardDescription>
-                  General settings and automated behaviors across FreelanceHub.
+                  {t("settings.preferencesSubtitle")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between py-2">
                   <div className="space-y-0.5">
                     <Label className="text-base font-medium">
-                      Auto-create Draft Invoices
+                      {t("settings.autoDraftInvoices")}
                     </Label>
                     <p className="text-xs text-muted-foreground mr-6">
-                      When enabled, creating a project will automatically
-                      generate a draft invoice matching the project budget.
+                      {t("settings.autoDraftSubtitle")}
                     </p>
                   </div>
                   <Switch
@@ -510,10 +512,10 @@ export function SettingsContent() {
                 <div className="flex items-center justify-between py-2 border-t border-border">
                   <div className="space-y-0.5">
                     <Label className="text-sm font-medium">
-                      Appearance / Theme
+                      {t("settings.theme")}
                     </Label>
                     <p className="text-xs text-muted-foreground mr-6">
-                      Customize how FreelanceHub looks on your device.
+                      {t("settings.themeSubtitle")}
                     </p>
                   </div>
                   <Select
@@ -535,10 +537,10 @@ export function SettingsContent() {
                 <div className="flex items-center justify-between py-2 border-t border-border">
                   <div className="space-y-0.5">
                     <Label className="text-sm font-medium">
-                      Default Currency
+                      {t("settings.currency")}
                     </Label>
                     <p className="text-xs text-muted-foreground mr-6">
-                      The primary currency used when generating your invoices.
+                      {t("settings.currencySubtitle")}
                     </p>
                   </div>
                   <Select
@@ -564,9 +566,9 @@ export function SettingsContent() {
 
                 <div className="flex items-center justify-between py-2 border-t border-border">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Timezone</Label>
+                    <Label className="text-sm font-medium">{t("settings.timezone")}</Label>
                     <p className="text-xs text-muted-foreground mr-6">
-                      Used for project deadlines and invoice issue dates.
+                      {t("settings.timezoneSubtitle")}
                     </p>
                   </div>
                   <Select
@@ -600,9 +602,9 @@ export function SettingsContent() {
 
                 <div className="flex items-center justify-between py-2 border-t border-border">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Date Format</Label>
+                    <Label className="text-sm font-medium">{t("settings.dateFormat")}</Label>
                     <p className="text-xs text-muted-foreground mr-6">
-                      How dates should be presented across the application.
+                      {t("settings.dateFormatSubtitle")}
                     </p>
                   </div>
                   <Select
@@ -623,9 +625,9 @@ export function SettingsContent() {
 
                 <div className="flex items-center justify-between py-2 border-t border-border">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Language</Label>
+                    <Label className="text-sm font-medium">{t("settings.language.title")}</Label>
                     <p className="text-xs text-muted-foreground mr-6">
-                      Choose the language used across the application.
+                      {t("settings.language.description")}
                     </p>
                   </div>
                   <Select
@@ -667,12 +669,10 @@ export function SettingsContent() {
                 <div className="flex flex-col gap-2 py-3 border-t border-border">
                   <div className="space-y-0.5">
                     <Label className="text-sm font-medium">
-                      Payment Instructions / Bank Details
+                      {t("settings.paymentDetails")}
                     </Label>
                     <p className="text-xs text-muted-foreground">
-                      This information will be printed at the bottom of all your
-                      generated PDF invoices. You can include bank details,
-                      PayPal links, or specific payment terms.
+                      {t("settings.paymentDetailsSubtitle")}
                     </p>
                   </div>
                   <textarea
@@ -681,7 +681,7 @@ export function SettingsContent() {
                     onBlur={(e) =>
                       handleUpdatePref("paymentDetails", e.target.value)
                     }
-                    placeholder="e.g. Please wire funds to Account #12345678, Routing #987654321..."
+                    placeholder={t("settings.paymentDetailsPlaceholder")}
                     className="min-h-[120px] max-h-[200px] w-full p-3 text-sm bg-background border border-input rounded-none focus:outline-none focus:ring-1 focus:ring-ring resize-y"
                     disabled={isSavingPref}
                   />
@@ -693,15 +693,15 @@ export function SettingsContent() {
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
                   <Shield className="h-4 w-4 text-muted-foreground" />
-                  Security
+                  {t("settings.security")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between py-2">
                   <div>
-                    <p className="text-sm font-medium">Password</p>
+                    <p className="text-sm font-medium">{t("settings.password")}</p>
                     <p className="text-xs text-muted-foreground">
-                      Change your password or reset it via email.
+                      {t("settings.passwordSubtitle")}
                     </p>
                   </div>
                   <Button
@@ -709,7 +709,7 @@ export function SettingsContent() {
                     size="sm"
                     onClick={() => router.push("/profile#password-management")}
                   >
-                    Manage
+                    {t("settings.manage")}
                   </Button>
                 </div>
               </CardContent>
@@ -723,7 +723,7 @@ export function SettingsContent() {
             {/* Current Plan Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Current Plan</CardTitle>
+                <CardTitle className="text-base">{t("settings.currentPlan")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -734,13 +734,13 @@ export function SettingsContent() {
                       </span>
                       {isPro && (
                         <Badge className="gap-1">
-                          <Zap className="h-3 w-3" /> Active
+                          <Zap className="h-3 w-3" /> {t("settings.active")}
                         </Badge>
                       )}
                     </div>
                     {isPro && user?.currentPeriodEnd && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Renews{" "}
+                        {t("settings.renews")}{" "}
                         {new Date(user.currentPeriodEnd).toLocaleDateString(
                           "en-US",
                           { dateStyle: "medium" },
@@ -749,8 +749,7 @@ export function SettingsContent() {
                     )}
                     {!isPro && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Upgrade to Pro for unlimited access and advanced
-                        features.
+                        {t("settings.upgradeSubtitle")}
                       </p>
                     )}
                   </div>
@@ -766,22 +765,21 @@ export function SettingsContent() {
                       ) : (
                         <>
                           <ExternalLink className="mr-2 h-3.5 w-3.5" />
-                          Manage Subscription
+                          {t("settings.manageSub")}
                         </>
                       )}
                     </Button>
                   ) : (
                     <Button size="sm" onClick={() => router.push("/checkout")}>
-                      <Zap className="mr-2 h-3.5 w-3.5" /> Upgrade — $5/mo
+                      <Zap className="mr-2 h-3.5 w-3.5" /> {t("settings.upgradeButton")}
                     </Button>
-                  )}
+                )}
                 </div>
 
                 {isPro && (
                   <div className="rounded-none border border-primary/20 bg-primary/5 p-3">
                     <p className="text-xs text-primary font-medium">
-                      ✓ All limits removed — enjoy unlimited access to every
-                      feature.
+                      {t("settings.proUnlimited")}
                     </p>
                   </div>
                 )}
@@ -791,11 +789,11 @@ export function SettingsContent() {
             {/* Usage Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Usage This Month</CardTitle>
+                <CardTitle className="text-base">{t("settings.usageThisMonth")}</CardTitle>
                 <CardDescription>
                   {isPro
-                    ? "You're on Pro — all limits are removed."
-                    : "Your current usage against Free tier limits."}
+                    ? t("settings.proActive")
+                    : t("settings.freeUsage")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -814,24 +812,24 @@ export function SettingsContent() {
                 ) : usage ? (
                   <>
                     <UsageBar
-                      label="Clients"
+                      label={t("nav.clients")}
                       current={usage.usage.clients}
                       limit={isPro ? Infinity : FREE_LIMITS.clients}
                     />
                     <UsageBar
-                      label="Projects"
+                      label={t("nav.projects")}
                       current={usage.usage.projects}
                       limit={isPro ? Infinity : FREE_LIMITS.projects}
                     />
                     <UsageBar
-                      label="Invoices this month"
+                      label={t("settings.usageThisMonth")}
                       current={usage.usage.invoicesThisMonth}
                       limit={isPro ? Infinity : FREE_LIMITS.invoicesPerMonth}
                     />
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Could not load usage data.
+                    {t("toasts.failedToLoadUsage")}
                   </p>
                 )}
               </CardContent>
@@ -843,18 +841,18 @@ export function SettingsContent() {
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
                     <Zap className="h-4 w-4 text-primary" />
-                    What you get with Pro
+                    {t("settings.whatYouGet")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5">
                     {[
-                      "Unlimited clients, projects & invoices",
-                      "Custom invoice branding (logo + colors)",
-                      "Secure client portals",
-                      "Automated payment reminders",
-                      "Project file attachments",
-                      "Priority support",
+                      t("settings.proFeatures.unlimited"),
+                      t("settings.proFeatures.branding"),
+                      t("settings.proFeatures.portals"),
+                      t("settings.proFeatures.reminders"),
+                      t("settings.proFeatures.attachments"),
+                      t("settings.proFeatures.support"),
                     ].map((f) => (
                       <li key={f} className="flex items-center gap-2.5 text-sm">
                         <Check className="h-4 w-4 text-primary shrink-0" />
@@ -866,7 +864,7 @@ export function SettingsContent() {
                     className="w-full mt-5"
                     onClick={() => router.push("/checkout")}
                   >
-                    <Zap className="mr-2 h-4 w-4" /> Upgrade to Pro — $5/month
+                    <Zap className="mr-2 h-4 w-4" /> {t("settings.upgradeProButton")}
                   </Button>
                 </CardContent>
               </Card>
@@ -886,17 +884,14 @@ export function SettingsContent() {
                   </div>
                   <div>
                     <h3 className="font-semibold font-heading">
-                      Custom Branding is a Pro Feature
+                      {t("settings.proOnlyBranding")}
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                      Upload your logo, set your brand colors, and custom
-                      invoice prefixes. Your clients will see your brand — not
-                      ours.
+                      {t("settings.unlockBranding")}
                     </p>
                   </div>
                   <Button onClick={() => router.push("/checkout")}>
-                    <Zap className="mr-2 h-4 w-4" /> Unlock Branding — Upgrade
-                    to Pro
+                    <Zap className="mr-2 h-4 w-4" /> {t("settings.upgradeButton")}
                   </Button>
                 </CardContent>
               </Card>
@@ -905,15 +900,15 @@ export function SettingsContent() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">
-                      Invoice Branding
+                      {t("settings.brandingTitle")}
                     </CardTitle>
                     <CardDescription>
-                      Customize how your invoices appear to clients.
+                      {t("settings.brandingDesc")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Brand Logo</label>
+                      <label className="text-sm font-medium">{t("settings.brandLogo")}</label>
                       <div className="flex items-center gap-4">
                         <div className="h-16 w-16 bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
                           {brandLogoUrl ? (
@@ -945,7 +940,7 @@ export function SettingsContent() {
                               {isUploadingLogo && (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               )}
-                              Upload Image
+                              {isUploadingLogo ? t("settings.uploadingLogo") : t("settings.uploadLogo")}
                             </Button>
                             {brandLogoUrl && (
                               <Button
@@ -955,19 +950,19 @@ export function SettingsContent() {
                                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                 onClick={() => setBrandLogoUrl("")}
                               >
-                                Remove
+                                {t("settings.removeLogo")}
                               </Button>
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Max size: 5MB. Use a transparent PNG for best
-                            results.
+                            {t("settings.brandLogoDesc")}
                           </p>
                         </div>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Brand Color</label>
+                      <label className="text-sm font-medium">{t("settings.brandColor")}</label>
+                      <p className="text-xs text-muted-foreground">{t("settings.brandColorDesc")}</p>
                       <div className="flex items-center gap-3">
                         <input
                           type="color"
@@ -985,8 +980,9 @@ export function SettingsContent() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-medium">
-                        Invoice Number Prefix
+                        {t("settings.invoicePrefix")}
                       </label>
+                      <p className="text-xs text-muted-foreground">{t("settings.invoicePrefixDesc")}</p>
                       <input
                         type="text"
                         value={invoicePrefix}
@@ -1014,7 +1010,7 @@ export function SettingsContent() {
                       {isSavingBrand && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      Save Branding
+                      {isSavingBrand ? t("settings.saving") : t("settings.saveBranding")}
                     </Button>
                   </CardContent>
                 </Card>

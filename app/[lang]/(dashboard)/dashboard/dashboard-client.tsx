@@ -7,7 +7,6 @@ import {
   FolderOpen,
   FileText,
   Users,
-  TrendingUp,
   Clock,
 } from "lucide-react";
 import { useDataStore } from "@/store/data-store";
@@ -21,6 +20,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardInsights } from "@/components/dashboard/dashboard-insights";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 function statusVariant(status: string) {
   switch (status) {
@@ -36,6 +36,7 @@ function statusVariant(status: string) {
 export function DashboardContent() {
   const { dashboardMetrics, isLoadingMetrics, fetchMetrics, fetchInvoices } =
     useDataStore();
+  const t = useTranslation();
 
   useEffect(() => {
     fetchMetrics();
@@ -60,47 +61,47 @@ export function DashboardContent() {
     return <DashboardSkeleton />;
   }
 
+  const statCards = [
+    {
+      label: t("dashboard.totalRevenue"),
+      value: stats.totalRevenue.toLocaleString(),
+      sub: t("dashboard.fromPaidInvoices"),
+      icon: DollarSign,
+      iconColor: "text-green-600 dark:text-green-500",
+    },
+    {
+      label: t("dashboard.activeProjects"),
+      value: stats.activeProjects,
+      sub: `${stats.totalProjects} ${t("dashboard.total")}`,
+      icon: FolderOpen,
+      iconColor: "text-blue-600 dark:text-blue-400",
+    },
+    {
+      label: t("dashboard.pendingInvoices"),
+      value: stats.pendingInvoicesCount,
+      sub: `${stats.pendingInvoicesAmount.toLocaleString()} ${t("dashboard.outstanding")}`,
+      icon: FileText,
+      iconColor: "text-orange-600 dark:text-orange-400",
+    },
+    {
+      label: t("dashboard.totalClients"),
+      value: stats.totalClients,
+      sub: t("dashboard.inYourNetwork"),
+      icon: Users,
+      iconColor: "text-purple-600 dark:text-purple-400",
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold font-heading">Dashboard</h2>
-        <p className="text-muted-foreground mt-1">
-          Here&apos;s what&apos;s happening with your freelance business today.
-        </p>
+        <h2 className="text-3xl font-bold font-heading">{t("dashboard.title")}</h2>
+        <p className="text-muted-foreground mt-1">{t("dashboard.subtitle")}</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[
-          {
-            label: "Total Revenue",
-            value: `$${stats.totalRevenue.toLocaleString()}`,
-            sub: "From paid invoices",
-            icon: DollarSign,
-            iconColor: "text-green-600 dark:text-green-500",
-          },
-          {
-            label: "Active Projects",
-            value: stats.activeProjects,
-            sub: `${stats.totalProjects} total`,
-            icon: FolderOpen,
-            iconColor: "text-blue-600 dark:text-blue-400",
-          },
-          {
-            label: "Pending Invoices",
-            value: stats.pendingInvoicesCount,
-            sub: `$${stats.pendingInvoicesAmount.toLocaleString()} outstanding`,
-            icon: FileText,
-            iconColor: "text-orange-600 dark:text-orange-400",
-          },
-          {
-            label: "Total Clients",
-            value: stats.totalClients,
-            sub: "In your network",
-            icon: Users,
-            iconColor: "text-purple-600 dark:text-purple-400",
-          },
-        ].map((stat, i) => (
+        {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 10 }}
@@ -137,9 +138,9 @@ export function DashboardContent() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-primary" />
-                Recent Activity
+                {t("dashboard.recentActivity")}
               </CardTitle>
-              <CardDescription>Latest projects and invoices</CardDescription>
+              <CardDescription>{t("dashboard.latestProjectsInvoices")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {recentActivity.length > 0 ? (
@@ -167,7 +168,7 @@ export function DashboardContent() {
                 ))
               ) : (
                 <div className="text-center py-8 text-sm text-muted-foreground">
-                  No recent activity. Start by adding clients and projects!
+                  {t("dashboard.noRecentActivity")}
                 </div>
               )}
             </CardContent>

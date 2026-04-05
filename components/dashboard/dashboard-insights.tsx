@@ -13,6 +13,7 @@ import RevenueChart from "@/components/charts/revenue-chart";
 import ProjectBreakdownChart from "@/components/charts/project-breakdown-chart";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 interface InsightsData {
   isLocked: boolean;
@@ -25,6 +26,7 @@ export function DashboardInsights() {
   const [data, setData] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const t = useTranslation();
 
   useEffect(() => {
     fetch("/api/dashboard/insights")
@@ -78,10 +80,10 @@ export function DashboardInsights() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-primary" />
-            Revenue Overview
+            {t("dashboard.revenueOverview")}
           </CardTitle>
           <CardDescription>
-            Your earnings over the last 6 months
+            {t("dashboard.earningsLast6Months")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -96,10 +98,10 @@ export function DashboardInsights() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <PieChart className="h-4 w-4 text-primary" />
-                Project Breakdown
+                {t("dashboard.projectBreakdown")}
               </CardTitle>
               <CardDescription>
-                Distribution of projects by their current status
+                {t("dashboard.projectBreakdownDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-center min-h-[280px]">
@@ -111,9 +113,9 @@ export function DashboardInsights() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-primary" />
-                Top Clients
+                {t("dashboard.topClients")}
               </CardTitle>
-              <CardDescription>Highest grossing partnerships</CardDescription>
+              <CardDescription>{t("dashboard.topClientsDesc")}</CardDescription>
             </CardHeader>
             <CardContent>
               {data.topClients.length > 0 ? (
@@ -139,7 +141,7 @@ export function DashboardInsights() {
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full min-h-[200px] text-sm text-muted-foreground">
-                  No revenue data yet
+                  {t("dashboard.noRevenueData")}
                 </div>
               )}
             </CardContent>

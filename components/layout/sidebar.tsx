@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AppLogo } from "@/components/app-logo";
 import { useSession } from "@/lib/auth-client";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 interface SidebarProps {
   open: boolean;
@@ -25,19 +26,10 @@ interface SidebarProps {
   version?: string;
 }
 
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Projects", href: "/projects", icon: FolderOpen },
-  { name: "Invoices", href: "/invoices", icon: FileText },
-  { name: "Clients", href: "/clients", icon: Users },
-  { name: "Time Tracking", href: "/time-tracking", icon: Clock },
-  { name: "Profile", href: "/profile", icon: User },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
-
 export function Sidebar({ open, setOpen, version }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const t = useTranslation();
   const isPro = (session?.user as { plan?: string })?.plan === "pro";
   const versionLabel = version ? `v${version}` : "FreelanceHub";
 
@@ -47,6 +39,16 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
 
   // Strip the locale prefix for active-link comparison
   const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}(-[A-Z]{2})?/, "") || "/";
+
+  const navigation = [
+    { nameKey: "nav.dashboard",    href: "/dashboard",    icon: LayoutDashboard },
+    { nameKey: "nav.projects",     href: "/projects",     icon: FolderOpen },
+    { nameKey: "nav.invoices",     href: "/invoices",     icon: FileText },
+    { nameKey: "nav.clients",      href: "/clients",      icon: Users },
+    { nameKey: "nav.timeTracking", href: "/time-tracking",icon: Clock },
+    { nameKey: "nav.profile",      href: "/profile",      icon: User },
+    { nameKey: "nav.settings",     href: "/settings",     icon: Settings },
+  ];
 
   return (
     <>
@@ -96,7 +98,7 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
               pathWithoutLocale.startsWith(item.href + "/");
             return (
               <Link
-                key={item.name}
+                key={item.href}
                 href={`/${currentLocale}${item.href}`}
                 onClick={() => {
                   if (
@@ -114,7 +116,7 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
-                <span>{item.name}</span>
+                <span>{t(item.nameKey)}</span>
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active-indicator"
@@ -148,7 +150,7 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
                 className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
               >
                 <Zap className="h-3.5 w-3.5" />
-                Upgrade to Pro — $5/mo
+                {t("settings.upgradeButton")}
               </Link>
             </>
           )}

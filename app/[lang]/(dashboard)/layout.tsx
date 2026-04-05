@@ -7,6 +7,8 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { hasLocale, freeLocales } from "@/lib/i18n/config";
 import { isPro } from "@/lib/subscription/limits";
+import { getDictionary } from "@/lib/i18n/getDictionary";
+import { TranslationProvider } from "@/lib/i18n/translation-context";
 import type { FreeLocale } from "@/lib/i18n/config";
 
 export const metadata: Metadata = {
@@ -15,7 +17,7 @@ export const metadata: Metadata = {
     template: "%s | FreelanceHub",
   },
 };
-
+  
 // Read once at module load — version only changes on deploy
 const pkg = JSON.parse(
   readFileSync(join(process.cwd(), "package.json"), "utf-8"),
@@ -52,5 +54,11 @@ export default async function DashboardGroupLayout({
     redirect(`/en/dashboard`);
   }
 
-  return <DashboardLayout version={pkg.version}>{children}</DashboardLayout>;
+  const dict = await getDictionary(lang);
+
+  return (
+    <TranslationProvider dict={dict}>
+      <DashboardLayout version={pkg.version}>{children}</DashboardLayout>
+    </TranslationProvider>
+  );
 }

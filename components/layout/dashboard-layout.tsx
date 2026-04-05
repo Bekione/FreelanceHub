@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "./sidebar";
 import { AppHeader } from "./header";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 export function DashboardLayout({
   children,
@@ -12,6 +13,7 @@ export function DashboardLayout({
   version?: string;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const t = useTranslation();
 
   useEffect(() => {
     const handleResize = () => {
@@ -34,7 +36,7 @@ export function DashboardLayout({
         <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
 
         <footer className="px-4 py-3 text-center text-xs text-muted-foreground border-t border-border shrink-0">
-          Made by Bereket Kinfe
+          {t("dashboard.madeBy")} Bereket Kinfe
         </footer>
       </div>
     </div>

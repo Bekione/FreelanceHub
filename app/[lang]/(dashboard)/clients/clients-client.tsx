@@ -56,6 +56,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 const emptyForm = { name: "", email: "", company: "", phone: "", notes: "" };
 
@@ -98,6 +99,7 @@ export function ClientsContent() {
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const { data: session } = useSession();
+  const t = useTranslation();
   const isPro =
     (session?.user as any)?.subscriptionStatus === "active" ||
     (session?.user as any)?.subscriptionStatus === "past_due";
@@ -241,10 +243,10 @@ export function ClientsContent() {
         setShowUpgradeModal(true);
         return;
       }
-      toast.error("Failed", { description: result.error });
+      toast.error(t("toasts.failed"), { description: result.error });
       return;
     }
-    toast.success(editingClient ? "Client updated" : "Client added");
+    toast.success(editingClient ? t("toasts.clientUpdated") : t("toasts.clientAdded"));
     setIsFormOpen(false);
   };
 
@@ -255,10 +257,10 @@ export function ClientsContent() {
     setIsDeleting(false);
     if (result.error) {
       // Keep the dialog open — let user read the error and decide
-      toast.error("Cannot delete client", { description: result.error });
+      toast.error(t("toasts.failed"), { description: result.error });
       return;
     }
-    toast.success("Client deleted");
+    toast.success(t("toasts.clientDeleted"));
     setIsDeleteOpen(false);
   };
 
@@ -280,7 +282,7 @@ export function ClientsContent() {
           setUpgradeResource("portals");
           setShowUpgradeModal(true);
         } else {
-          toast.error(data.error || "Failed to toggle portal");
+          toast.error(data.error || t("toasts.failedToTogglePortal"));
         }
         setIsTogglingPortal(null);
         return;
@@ -295,11 +297,11 @@ export function ClientsContent() {
       setClients(updatedList, clientsMeta);
       toast.success(
         action === "ENABLE"
-          ? "Client Portal generated"
-          : "Client Portal disabled",
+          ? t("toasts.portalGenerated")
+          : t("toasts.portalDisabled"),
       );
     } catch (e) {
-      toast.error("An error occurred toggling the portal");
+      toast.error(t("toasts.failedToTogglePortal"));
     } finally {
       setIsTogglingPortal(null);
     }
@@ -309,7 +311,7 @@ export function ClientsContent() {
     if (!client.portalToken) return;
     const url = `${window.location.origin}/portal/${client.id}/${client.portalToken}`;
     navigator.clipboard.writeText(url);
-    toast.success("Portal link copied to clipboard");
+    toast.success(t("toasts.portalLinkCopied"));
   };
 
   const totalClients = clientsMeta?.totalItems ?? clients.length;
@@ -325,9 +327,9 @@ export function ClientsContent() {
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold font-heading">Clients</h2>
+            <h2 className="text-3xl font-bold font-heading">{t("clients.title")}</h2>
             <p className="text-muted-foreground mt-1">
-              Manage your client relationships and contact information.
+              {t("clients.subtitle")}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -335,7 +337,7 @@ export function ClientsContent() {
             {!isLoadingClients && clientsMeta && !isPro && (
               <div className="hidden sm:flex flex-col items-end gap-1">
                 <span className="text-xs text-muted-foreground">
-                  {totalClients} / {FREE_LIMITS.clients} clients used
+                  {totalClients} / {FREE_LIMITS.clients} {t("clients.usedOf")}
                 </span>
                 <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
                   <div
@@ -361,11 +363,11 @@ export function ClientsContent() {
             >
               {!isPro && atLimit ? (
                 <>
-                  <Zap className="mr-2 h-4 w-4" /> Upgrade for More
+                  <Zap className="mr-2 h-4 w-4" /> {t("common.upgrade")}
                 </>
               ) : (
                 <>
-                  <Plus className="mr-2 h-4 w-4" /> Add Client
+                  <Plus className="mr-2 h-4 w-4" /> {t("clients.new")}
                 </>
               )}
             </Button>
@@ -377,7 +379,7 @@ export function ClientsContent() {
           <div className="relative flex items-center flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search clients by name, company, or email..."
+              placeholder={t("clients.searchPlaceholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-9 flex-1"
@@ -533,7 +535,7 @@ export function ClientsContent() {
                                 onClick={() => copyPortalLink(client)}
                                 className="h-8 gap-1 text-primary hover:text-primary transition-colors"
                               >
-                                <Link className="h-3.5 w-3.5" /> Copy Link
+                                <Link className="h-3.5 w-3.5" /> {t("clients.portal.copy")}
                               </Button>
                               <Button
                                 variant="ghost"
@@ -547,7 +549,7 @@ export function ClientsContent() {
                                 {isTogglingPortal === client.id ? (
                                   <SpinnerLoader className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
-                                  "Disable"
+                                  t("clients.portal.disable")
                                 )}
                               </Button>
                             </>
@@ -565,8 +567,7 @@ export function ClientsContent() {
                                 <SpinnerLoader className="h-3.5 w-3.5 animate-spin" />
                               ) : (
                                 <>
-                                  <Globe className="h-3.5 w-3.5" /> Generate
-                                  Portal
+                                  <Globe className="h-3.5 w-3.5" /> {t("clients.portal.enable")}
                                 </>
                               )}
                             </Button>
@@ -581,31 +582,30 @@ export function ClientsContent() {
               <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
                 <Search className="h-10 w-10 text-muted-foreground/30" />
                 <p className="text-lg font-medium text-foreground">
-                  No matching clients found
+                  {t("clients.noMatch")}
                 </p>
                 <p className="text-sm text-muted-foreground max-w-sm text-center">
-                  We couldn&apos;t find anything matching "{debouncedSearch}".
-                  Try adjusting your query.
+                  {t("clients.noMatchQuery").replace("{query}", debouncedSearch)}
                 </p>
                 <Button
                   variant="ghost"
                   className="mt-2"
                   onClick={() => setSearchTerm("")}
                 >
-                  Clear Search
+                  {t("clients.clearSearch")}
                 </Button>
               </div>
             ) : (
               <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
                 <UserPlus className="h-10 w-10 text-muted-foreground/50" />
                 <p className="text-lg font-medium text-muted-foreground">
-                  No clients yet
+                  {t("clients.empty")}
                 </p>
                 <p className="text-sm text-muted-foreground/60">
-                  Start adding clients to your network!
+                  {t("clients.emptySubtitle")}
                 </p>
                 <Button variant="outline" className="mt-4" onClick={openCreate}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Your First Client
+                  <Plus className="mr-2 h-4 w-4" /> {t("clients.addFirst")}
                 </Button>
               </div>
             )}
@@ -656,12 +656,12 @@ export function ClientsContent() {
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
               <DialogTitle>
-                {editingClient ? "Edit Client" : "Add New Client"}
+                {editingClient ? t("clients.form.editClient") : t("clients.form.newClient")}
               </DialogTitle>
               <DialogDescription>
                 {editingClient
-                  ? "Update client details."
-                  : "Add a new client to your contact list."}
+                  ? t("clients.form.editSubtitle")
+                  : t("clients.form.createSubtitle")}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
@@ -705,44 +705,44 @@ export function ClientsContent() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
+                  <Label htmlFor="name">{t("clients.form.name")} *</Label>
                   <Input
                     id="name"
-                    placeholder="John Doe"
+                    placeholder={t("clients.form.namePlaceholder")}
                     {...register("name", { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t("clients.form.email")}</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="john@example.com"
+                    placeholder={t("clients.form.emailPlaceholder")}
                     {...register("email")}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone</Label>
+                  <Label htmlFor="phone">{t("clients.form.phone")}</Label>
                   <Input
                     id="phone"
                     type="tel"
-                    placeholder="+1 (555) 000-0000"
+                    placeholder={t("clients.form.phonePlaceholder")}
                     {...register("phone")}
                   />
                 </div>
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="company">Company</Label>
+                  <Label htmlFor="company">{t("clients.form.company")}</Label>
                   <Input
                     id="company"
-                    placeholder="Acme Inc."
+                    placeholder={t("clients.form.companyPlaceholder")}
                     {...register("company")}
                   />
                 </div>
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="notes">Notes</Label>
+                  <Label htmlFor="notes">{t("clients.form.notes")}</Label>
                   <Textarea
                     id="notes"
-                    placeholder="Any additional info..."
+                    placeholder={t("clients.form.notesPlaceholder")}
                     {...register("notes")}
                     rows={3}
                   />
@@ -754,7 +754,7 @@ export function ClientsContent() {
                   variant="outline"
                   onClick={() => setIsFormOpen(false)}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   type="submit"
@@ -767,7 +767,7 @@ export function ClientsContent() {
                   {isSubmitting && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  {editingClient ? "Save Changes" : "Add Client"}
+                  {editingClient ? t("clients.form.updateClient") : t("clients.form.createClient")}
                 </Button>
               </DialogFooter>
             </form>
@@ -778,16 +778,15 @@ export function ClientsContent() {
         <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
-              <DialogTitle>Delete Client</DialogTitle>
+              <DialogTitle>{t("clients.delete.title")}</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete{" "}
-                <strong>{deletingClient?.name}</strong>? This action cannot be
-                undone.
+                {t("clients.delete.description")}{" "}
+                <strong>{deletingClient?.name}</strong>? {t("clients.delete.warning")}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -797,7 +796,7 @@ export function ClientsContent() {
                 {isDeleting && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Delete Client
+                {t("clients.delete.confirm")}
               </Button>
             </DialogFooter>
           </DialogContent>

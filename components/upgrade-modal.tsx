@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Zap, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "@/lib/i18n/translation-context";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -12,51 +13,37 @@ interface UpgradeModalProps {
   limit?: number;
 }
 
-const RESOURCE_COPY: Record<string, { title: string; description: string }> = {
-  clients: {
-    title: "You've reached your client limit",
-    description:
-      "Free accounts can manage up to 10 clients. Upgrade to Pro for unlimited clients and premium features.",
-  },
-  projects: {
-    title: "You've reached your project limit",
-    description:
-      "Free accounts can manage up to 15 projects. Upgrade to Pro for unlimited projects and file attachments.",
-  },
-  invoices: {
-    title: "You've reached your monthly invoice limit",
-    description:
-      "Free accounts can create up to 20 invoices per month. Upgrade to Pro for unlimited invoices and custom branding.",
-  },
-  portals: {
-    title: "You've exhausted your free portal generation limit",
-    description:
-      "Free accounts can only generate a Client Portal once. Upgrade to Pro for unlimited, un-branded client portals.",
-  },
-  language: {
-    title: "This language requires Pro",
-    description:
-      "Simplified Chinese and Arabic are available on the Pro plan. Upgrade to unlock all 6 languages.",
-  },
-  generic: {
-    title: "This is a Pro feature",
-    description:
-      "Upgrade to FreelanceHub Pro to unlock this feature and take your freelance business to the next level.",
-  },
-};
-
-const PRO_FEATURES = [
-  "Unlimited clients, projects & invoices",
-  "Custom branding on all invoices & emails",
-  "Secure client portals",
-  "Automated payment reminders",
-  "Project file attachments",
-  "Priority support",
-];
-
 export function UpgradeModal({ isOpen, onClose, resource }: UpgradeModalProps) {
   const router = useRouter();
-  const copy = resource ? RESOURCE_COPY[resource] : RESOURCE_COPY.generic;
+  const t = useTranslation();
+
+  const getCopy = () => {
+    switch (resource) {
+      case "clients":
+        return { title: t("upgrade.clients.title"), description: t("upgrade.clients.description") };
+      case "projects":
+        return { title: t("upgrade.projects.title"), description: t("upgrade.projects.description") };
+      case "invoices":
+        return { title: t("upgrade.invoices.title"), description: t("upgrade.invoices.description") };
+      case "portals":
+        return { title: t("upgrade.portals.title"), description: t("upgrade.portals.description") };
+      case "language":
+        return { title: t("upgrade.language.title"), description: t("upgrade.language.description") };
+      default:
+        return { title: t("upgrade.title"), description: t("upgrade.description") };
+    }
+  };
+
+  const copy = getCopy();
+
+  const proFeatures = [
+    t("upgrade.proFeatures.unlimited"),
+    t("upgrade.proFeatures.branding"),
+    t("upgrade.proFeatures.portals"),
+    t("upgrade.proFeatures.reminders"),
+    t("upgrade.proFeatures.attachments"),
+    t("upgrade.proFeatures.support"),
+  ];
 
   return (
     <AnimatePresence>
@@ -110,7 +97,7 @@ export function UpgradeModal({ isOpen, onClose, resource }: UpgradeModalProps) {
 
                 {/* Feature list */}
                 <ul className="space-y-2">
-                  {PRO_FEATURES.map((feat) => (
+                  {proFeatures.map((feat) => (
                     <li
                       key={feat}
                       className="flex items-center gap-2.5 text-sm"
@@ -131,14 +118,14 @@ export function UpgradeModal({ isOpen, onClose, resource }: UpgradeModalProps) {
                     }}
                   >
                     <Zap className="h-4 w-4 mr-2" />
-                    Upgrade to Pro — $5/mo
+                    {t("upgrade.upgradePro")}
                   </Button>
                   <button
                     type="button"
                     onClick={onClose}
                     className="w-full text-xs text-muted-foreground hover:text-foreground transition-colors py-1"
                   >
-                    Maybe later
+                    {t("upgrade.maybeLater")}
                   </button>
                 </div>
               </div>
