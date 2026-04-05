@@ -1,26 +1,17 @@
 "use client";
 
 import { DirectionProvider } from "@radix-ui/react-direction";
-import { ThemeProvider } from "next-themes";
-import { Toaster } from "@/components/ui/sonner";
 
 interface ProvidersProps {
   children: React.ReactNode;
   dir?: "ltr" | "rtl";
 }
 
+/**
+ * Wraps children with Radix DirectionProvider for RTL support.
+ * ThemeProvider and Toaster live in app/layout.tsx so they never
+ * re-mount during client-side locale navigation.
+ */
 export function Providers({ children, dir = "ltr" }: ProvidersProps) {
-  return (
-    <DirectionProvider dir={dir}>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
-        {children}
-        <Toaster richColors position="bottom-right" />
-      </ThemeProvider>
-    </DirectionProvider>
-  );
+  return <DirectionProvider dir={dir}>{children}</DirectionProvider>;
 }
