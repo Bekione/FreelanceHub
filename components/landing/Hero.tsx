@@ -118,7 +118,7 @@ export default function Hero({ dict, lang }: HeroProps) {
                 src={dashboardImg}
                 alt="FreelanceHub Dashboard"
                 className="w-full block opacity-80"
-                priority
+                loading="eager"
               />
             </div>
           </div>
