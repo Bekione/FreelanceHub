@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { hasLocale, freeLocales } from "@/lib/i18n/config";
+import { isPro } from "@/lib/subscription/limits";
+import type { FreeLocale } from "@/lib/i18n/config";
 
 // GET: fetch current profile settings
 export async function GET() {
@@ -40,8 +43,27 @@ export async function PATCH(req: Request) {
     "theme",
     "dateFormat",
     "paymentDetails",
+    "language",
   ];
   const allowed = [...allowedBrandingFields, ...allowedPrefFields];
+
+  // Pro gate: reject Pro locales for Free users
+  if ("language" in body) {
+    const lang = body.language;
+    if (!hasLocale(lang)) {
+      return NextResponse.json({ error: "Invalid locale" }, { status: 400 });
+    }
+    const isProLocale = !(freeLocales as readonly string[]).includes(lang);
+    if (isProLocale) {
+      const user = session.user as { subscriptionStatus?: string };
+      if (!isPro(user.subscriptionStatus)) {
+        return NextResponse.json(
+          { error: "UPGRADE_REQUIRED", code: "UPGRADE_REQUIRED" },
+          { status: 403 },
+        );
+      }
+    }
+  }
 
   const data: Record<string, unknown> = {};
   for (const key of allowed) {

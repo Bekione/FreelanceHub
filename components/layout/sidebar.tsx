@@ -41,6 +41,13 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
   const isPro = (session?.user as { plan?: string })?.plan === "pro";
   const versionLabel = version ? `v${version}` : "FreelanceHub";
 
+  // Extract current locale from pathname (e.g. "/en/dashboard" → "en")
+  const localeMatch = pathname.match(/^\/([a-z]{2}(-[A-Z]{2})?)/);
+  const currentLocale = localeMatch ? localeMatch[1] : "en";
+
+  // Strip the locale prefix for active-link comparison
+  const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}(-[A-Z]{2})?/, "") || "/";
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -63,8 +70,8 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
         animate={{ x: open ? 0 : "-100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 flex flex-col",
-          "bg-sidebar border-r border-sidebar-border",
+          "fixed inset-y-0 start-0 z-50 w-64 flex flex-col",
+          "bg-sidebar border-e border-sidebar-border",
           "lg:static lg:translate-x-0 lg:z-0",
         )}
       >
@@ -85,11 +92,12 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
           {navigation.map((item) => {
             const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
+              pathWithoutLocale === item.href ||
+              pathWithoutLocale.startsWith(item.href + "/");
             return (
               <Link
                 key={item.name}
-                href={item.href}
+                href={`/${currentLocale}${item.href}`}
                 onClick={() => {
                   if (
                     typeof window !== "undefined" &&
@@ -110,7 +118,7 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active-indicator"
-                    className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary-foreground/60"
+                    className="ms-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary-foreground/60"
                   />
                 )}
               </Link>
@@ -136,7 +144,7 @@ export function Sidebar({ open, setOpen, version }: SidebarProps) {
                 FreelanceHub v1.0
               </p>
               <Link
-                href="/checkout"
+                href={`/${currentLocale}/checkout`}
                 className="flex items-center justify-center gap-2 w-full px-3 py-2 text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
               >
                 <Zap className="h-3.5 w-3.5" />

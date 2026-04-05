@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 interface UpgradeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  resource?: "clients" | "projects" | "invoices" | "portals";
+  resource?: "clients" | "projects" | "invoices" | "portals" | "language";
   limit?: number;
 }
 
@@ -32,6 +32,11 @@ const RESOURCE_COPY: Record<string, { title: string; description: string }> = {
     title: "You've exhausted your free portal generation limit",
     description:
       "Free accounts can only generate a Client Portal once. Upgrade to Pro for unlimited, un-branded client portals.",
+  },
+  language: {
+    title: "This language requires Pro",
+    description:
+      "Simplified Chinese and Arabic are available on the Pro plan. Upgrade to unlock all 6 languages.",
   },
   generic: {
     title: "This is a Pro feature",

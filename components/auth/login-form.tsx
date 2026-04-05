@@ -29,6 +29,22 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+interface LoginFormDict {
+  title?: string;
+  subtitle?: string;
+  email?: string;
+  password?: string;
+  submit?: string;
+  forgotPassword?: string;
+  noAccount?: string;
+  register?: string;
+  google?: string;
+}
+
+interface LoginFormProps {
+  dict?: LoginFormDict;
+}
+
 // Inline Google icon SVG
 function GoogleIcon() {
   return (
@@ -53,7 +69,7 @@ function GoogleIcon() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ dict }: LoginFormProps = {}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirectUrl") || "/dashboard";
@@ -114,9 +130,9 @@ export function LoginForm() {
       <Card className="border-border/60 shadow-xl">
         <CardHeader className="space-y-1 pb-6">
           <AppLogo className="mb-2" />
-          <CardTitle className="text-2xl font-heading">Welcome back</CardTitle>
+          <CardTitle className="text-2xl font-heading">{dict?.title ?? "Welcome back"}</CardTitle>
           <CardDescription>
-            Sign in to manage your freelance work
+            {dict?.subtitle ?? "Sign in to manage your freelance work"}
           </CardDescription>
         </CardHeader>
 
@@ -133,7 +149,7 @@ export function LoginForm() {
             ) : (
               <GoogleIcon />
             )}
-            <span className="ml-2">Continue with Google</span>
+            <span className="ml-2">{dict?.google ?? "Continue with Google"}</span>
           </Button>
 
           <div className="relative">

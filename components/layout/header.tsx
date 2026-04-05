@@ -35,13 +35,15 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
 
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
+  // Strip locale prefix before looking up page title
+  const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}(-[A-Z]{2})?/, "") || "/";
   // Prevent hydration mismatch — theme is undefined on the server
   const [mounted, setMounted] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
-  const pageTitle = pageTitles[pathname] ?? "FreelanceHub";
+  const pageTitle = pageTitles[pathWithoutLocale] ?? "FreelanceHub";
 
   const cycleTheme = () => {
     if (theme === "light") setTheme("dark");
@@ -50,12 +52,15 @@ export function AppHeader({ onMenuClick }: HeaderProps) {
   };
 
   const handleLogout = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent dropdown from closing immediately
+    e.preventDefault();
     setIsLoggingOut(true);
+    // Extract locale from current path for locale-aware redirect
+    const localeMatch = pathname.match(/^\/([a-z]{2}(-[A-Z]{2})?)/);
+    const locale = localeMatch ? localeMatch[1] : "en";
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          router.push("/login"); // Immediately enforce redirect
+          router.push(`/${locale}/login`);
         },
         onError: () => {
           setIsLoggingOut(false);
