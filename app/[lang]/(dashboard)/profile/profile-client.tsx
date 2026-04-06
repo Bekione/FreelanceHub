@@ -85,9 +85,7 @@ function SubscriptionCard({ isPro }: { isPro: boolean }) {
                 FreelanceHub {isPro ? "Pro" : "Free"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {isPro
-                  ? t("profile.proMonthly")
-                  : t("profile.freeUpgrade")}
+                {isPro ? t("profile.proMonthly") : t("profile.freeUpgrade")}
               </p>
             </div>
           </div>
@@ -155,13 +153,18 @@ export function ProfileContent() {
 
   // Load account providers to detect if user has a password
   useEffect(() => {
-    authClient.listAccounts().then(({ data }) => {
-      // better-auth returns accounts with a `provider` field (e.g. "credential", "google")
-      const hasCreds = data?.some(
-        (a: any) => a.provider === "credential" || a.provider === "credentials"
-      ) ?? false;
-      setHasPassword(hasCreds);
-    }).catch(() => setHasPassword(false));
+    authClient
+      .listAccounts()
+      .then(({ data }) => {
+        // better-auth returns accounts with a `provider` field (e.g. "credential", "google")
+        const hasCreds =
+          data?.some(
+            (a: any) =>
+              a.providerId === "credential" || a.providerId === "credentials",
+          ) ?? false;
+        setHasPassword(hasCreds);
+      })
+      .catch(() => setHasPassword(false));
   }, []);
 
   // Danger Zone State
@@ -193,7 +196,9 @@ export function ProfileContent() {
     setIsUpdatingProfile(false);
 
     if (error) {
-      toast.error(t("toasts.failedToUpdateProfile"), { description: error.message });
+      toast.error(t("toasts.failedToUpdateProfile"), {
+        description: error.message,
+      });
       return;
     }
 
@@ -257,19 +262,25 @@ export function ProfileContent() {
     setIsSettingPassword(true);
     try {
       // better-auth built-in /set-password endpoint — creates credential account for OAuth users
-      const res = await fetch("/api/auth/set-password", {
+      const res = await fetch("/api/set-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newPassword: passwordData.newPassword }),
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(t("toasts.failedToChangePassword"), { description: data.message || data.error });
+        toast.error(t("toasts.failedToChangePassword"), {
+          description: data.message || data.error,
+        });
         return;
       }
       toast.success(t("toasts.passwordUpdated"));
       setHasPassword(true);
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
     } catch {
       toast.error(t("toasts.somethingWentWrong"));
     } finally {
@@ -287,7 +298,9 @@ export function ProfileContent() {
         password: deletePassword,
       });
       if (pwdError) {
-        toast.error(t("toasts.incorrectPassword"), { description: pwdError.message });
+        toast.error(t("toasts.incorrectPassword"), {
+          description: pwdError.message,
+        });
         setIsDeleting(false);
         return;
       }
@@ -306,7 +319,9 @@ export function ProfileContent() {
     const { error } = await authClient.deleteUser({});
 
     if (error) {
-      toast.error(t("toasts.failedToDeleteAccount"), { description: error.message });
+      toast.error(t("toasts.failedToDeleteAccount"), {
+        description: error.message,
+      });
       setIsDeleting(false);
       return;
     }
@@ -361,7 +376,9 @@ export function ProfileContent() {
       const { error } = await authClient.updateUser({ image: url });
 
       if (error) {
-        toast.error(t("toasts.failedToUpdateProfile"), { description: error.message });
+        toast.error(t("toasts.failedToUpdateProfile"), {
+          description: error.message,
+        });
       } else {
         toast.success(t("toasts.avatarUpdated"));
       }
@@ -381,7 +398,9 @@ export function ProfileContent() {
     setIsRemovingAvatar(false);
 
     if (error) {
-      toast.error(t("toasts.failedToRemoveAvatar"), { description: error.message });
+      toast.error(t("toasts.failedToRemoveAvatar"), {
+        description: error.message,
+      });
     } else {
       toast.success(t("toasts.avatarRemoved"));
     }
@@ -399,10 +418,10 @@ export function ProfileContent() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-10">
       <div>
-        <h2 className="text-3xl font-bold font-heading">{t("profile.title")}</h2>
-        <p className="text-muted-foreground mt-1">
-          {t("profile.subtitle")}
-        </p>
+        <h2 className="text-3xl font-bold font-heading">
+          {t("profile.title")}
+        </h2>
+        <p className="text-muted-foreground mt-1">{t("profile.subtitle")}</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-12">
@@ -429,7 +448,9 @@ export function ProfileContent() {
                   <User className="h-5 w-5 text-primary" />
                   <CardTitle>{t("profile.personalInfo")}</CardTitle>
                 </div>
-                <CardDescription>{t("profile.personalInfoDesc")}</CardDescription>
+                <CardDescription>
+                  {t("profile.personalInfoDesc")}
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-8">
                 {/* Avatar Section */}
@@ -463,7 +484,9 @@ export function ProfileContent() {
                         ) : (
                           <Camera className="mr-2 h-4 w-4" />
                         )}
-                        {isUploadingAvatar ? t("profile.uploading") : t("profile.uploadPhoto")}
+                        {isUploadingAvatar
+                          ? t("profile.uploading")
+                          : t("profile.uploadPhoto")}
                       </Button>
                       <Button
                         variant="ghost"
@@ -560,32 +583,52 @@ export function ProfileContent() {
                     <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border">
                       <ShieldCheck className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
                       <div className="space-y-1">
-                        <p className="text-sm font-medium">{t("profile.noPasswordTitle")}</p>
-                        <p className="text-xs text-muted-foreground">{t("profile.noPasswordDesc")}</p>
-                        <p className="text-xs text-muted-foreground">{t("profile.setPasswordPrompt")}</p>
+                        <p className="text-sm font-medium">
+                          {t("profile.noPasswordTitle")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("profile.noPasswordDesc")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("profile.setPasswordPrompt")}
+                        </p>
                       </div>
                     </div>
                     <form onSubmit={handleSetPassword} className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="newPasswordSet">{t("profile.newPassword")}</Label>
+                          <Label htmlFor="newPasswordSet">
+                            {t("profile.newPassword")}
+                          </Label>
                           <Input
                             id="newPasswordSet"
                             type="password"
                             placeholder="••••••••"
                             value={passwordData.newPassword}
-                            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                            onChange={(e) =>
+                              setPasswordData({
+                                ...passwordData,
+                                newPassword: e.target.value,
+                              })
+                            }
                             required
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="confirmPasswordSet">{t("profile.confirmPassword")}</Label>
+                          <Label htmlFor="confirmPasswordSet">
+                            {t("profile.confirmPassword")}
+                          </Label>
                           <Input
                             id="confirmPasswordSet"
                             type="password"
                             placeholder="••••••••"
                             value={passwordData.confirmPassword}
-                            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                            onChange={(e) =>
+                              setPasswordData({
+                                ...passwordData,
+                                confirmPassword: e.target.value,
+                              })
+                            }
                             required
                           />
                         </div>
@@ -593,9 +636,15 @@ export function ProfileContent() {
                       <div className="flex justify-end pt-2 border-t border-border/50">
                         <Button type="submit" disabled={isSettingPassword}>
                           {isSettingPassword ? (
-                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("profile.settingPassword")}</>
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              {t("profile.settingPassword")}
+                            </>
                           ) : (
-                            <><Save className="mr-2 h-4 w-4" />{t("profile.setPassword")}</>
+                            <>
+                              <Save className="mr-2 h-4 w-4" />
+                              {t("profile.setPassword")}
+                            </>
                           )}
                         </Button>
                       </div>
@@ -607,36 +656,57 @@ export function ProfileContent() {
                 {hasPassword === true && (
                   <form onSubmit={handleChangePassword} className="space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="currentPassword">{t("profile.currentPassword")}</Label>
+                      <Label htmlFor="currentPassword">
+                        {t("profile.currentPassword")}
+                      </Label>
                       <Input
                         id="currentPassword"
                         type="password"
                         placeholder="••••••••"
                         value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        onChange={(e) =>
+                          setPasswordData({
+                            ...passwordData,
+                            currentPassword: e.target.value,
+                          })
+                        }
                         required
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label htmlFor="newPassword">{t("profile.newPassword")}</Label>
+                        <Label htmlFor="newPassword">
+                          {t("profile.newPassword")}
+                        </Label>
                         <Input
                           id="newPassword"
                           type="password"
                           placeholder="••••••••"
                           value={passwordData.newPassword}
-                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                          onChange={(e) =>
+                            setPasswordData({
+                              ...passwordData,
+                              newPassword: e.target.value,
+                            })
+                          }
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">{t("profile.confirmPassword")}</Label>
+                        <Label htmlFor="confirmPassword">
+                          {t("profile.confirmPassword")}
+                        </Label>
                         <Input
                           id="confirmPassword"
                           type="password"
                           placeholder="••••••••"
                           value={passwordData.confirmPassword}
-                          onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                          onChange={(e) =>
+                            setPasswordData({
+                              ...passwordData,
+                              confirmPassword: e.target.value,
+                            })
+                          }
                           required
                         />
                       </div>
@@ -644,9 +714,15 @@ export function ProfileContent() {
                     <div className="flex justify-end pt-4 border-t border-border/50">
                       <Button type="submit" disabled={isChangingPassword}>
                         {isChangingPassword ? (
-                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("profile.updating")}</>
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            {t("profile.updating")}
+                          </>
                         ) : (
-                          <><Save className="mr-2 h-4 w-4" />{t("profile.updatePassword")}</>
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            {t("profile.updatePassword")}
+                          </>
                         )}
                       </Button>
                     </div>
@@ -694,7 +770,9 @@ export function ProfileContent() {
                   }}
                 >
                   <DialogTrigger asChild>
-                    <Button variant="destructive">{t("profile.deleteAccount")}</Button>
+                    <Button variant="destructive">
+                      {t("profile.deleteAccount")}
+                    </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
@@ -713,12 +791,16 @@ export function ProfileContent() {
                         </>
                       ) : (
                         <>
-                          <DialogTitle>{t("profile.confirmIdentity")}</DialogTitle>
+                          <DialogTitle>
+                            {t("profile.confirmIdentity")}
+                          </DialogTitle>
                           <DialogDescription>
                             {t("profile.confirmIdentityDesc")}
                           </DialogDescription>
                           <div className="mt-3 space-y-2">
-                            <Label htmlFor="deletePassword">{t("profile.password")}</Label>
+                            <Label htmlFor="deletePassword">
+                              {t("profile.password")}
+                            </Label>
                             <Input
                               id="deletePassword"
                               type="password"
@@ -749,7 +831,9 @@ export function ProfileContent() {
                         }}
                         disabled={isDeleting}
                       >
-                        {deleteStep === 2 ? t("profile.back") : t("common.cancel")}
+                        {deleteStep === 2
+                          ? t("profile.back")
+                          : t("common.cancel")}
                       </Button>
                       {deleteStep === 1 ? (
                         <Button
