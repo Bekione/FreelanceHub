@@ -447,7 +447,13 @@
     "currency": "Devise",
     "passwordManagement": "Gestion du mot de passe",
     "passwordSubtitle": "Mettez à jour votre mot de passe pour sécuriser votre compte.",
-    "password": "Mot de passe"
+    "password": "Mot de passe",
+    "noPasswordTitle": "Aucun mot de passe défini",
+    "noPasswordDesc": "Vous vous êtes connecté avec Google. Vous n'avez pas encore ajouté de mot de passe.",
+    "setPasswordPrompt": "Vous pouvez définir un mot de passe pour vous connecter également par e-mail.",
+    "setPassword": "Définir un mot de passe",
+    "settingPassword": "Définition...",
+    "passwordSet": "Mot de passe défini avec succès. Vous pouvez maintenant vous connecter par e-mail."
   },
   "onboarding": {
     "title": "Bienvenue sur FreelanceHub",

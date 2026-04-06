@@ -447,7 +447,13 @@
     "currency": "Währung",
     "passwordManagement": "Passwortverwaltung",
     "passwordSubtitle": "Aktualisieren Sie Ihr Passwort, um Ihr Konto zu schützen.",
-    "password": "Passwort"
+    "password": "Passwort",
+    "noPasswordTitle": "Kein Passwort festgelegt",
+    "noPasswordDesc": "Sie haben sich mit Google angemeldet. Sie haben noch kein Passwort hinzugefügt.",
+    "setPasswordPrompt": "Sie können ein Passwort festlegen, um sich auch per E-Mail anzumelden.",
+    "setPassword": "Passwort festlegen",
+    "settingPassword": "Wird festgelegt...",
+    "passwordSet": "Passwort erfolgreich festgelegt. Sie können sich jetzt auch per E-Mail anmelden."
   },
   "onboarding": {
     "title": "Willkommen bei FreelanceHub",

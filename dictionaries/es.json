@@ -406,7 +406,7 @@
     "uploadPhoto": "Subir foto",
     "removePhoto": "Eliminar foto",
     "uploading": "Subiendo...",
-    "avatarHint": "JPG, GIF o PNG. Tamaño máximo de 800K",
+    "avatarHint": "JPG, GIF o PNG. Tamaño máximo 5MB.",
     "fullName": "Nombre completo",
     "emailAddress": "Dirección de correo electrónico",
     "emailHint": "Los correos no se pueden cambiar directamente en este momento.",
@@ -446,7 +446,13 @@
     "currency": "Moneda",
     "passwordManagement": "Gestión de contraseña",
     "passwordSubtitle": "Actualiza tu contraseña para mantener tu cuenta segura.",
-    "password": "Contraseña"
+    "password": "Contraseña",
+    "noPasswordTitle": "Sin contraseña establecida",
+    "noPasswordDesc": "Iniciaste sesión con Google. Aún no has añadido una contraseña.",
+    "setPasswordPrompt": "Puedes establecer una contraseña para también iniciar sesión con correo electrónico.",
+    "setPassword": "Establecer contraseña",
+    "settingPassword": "Estableciendo...",
+    "passwordSet": "Contraseña establecida correctamente. Ahora también puedes iniciar sesión con correo."
   },
   "onboarding": {
     "title": "Bienvenido a FreelanceHub",

@@ -447,7 +447,13 @@
     "currency": "货币",
     "passwordManagement": "密码管理",
     "passwordSubtitle": "更新密码以保护您的账户安全。",
-    "password": "密码"
+    "password": "密码",
+    "noPasswordTitle": "未设置密码",
+    "noPasswordDesc": "您通过 Google 登录。您尚未添加密码。",
+    "setPasswordPrompt": "您可以设置密码，以便也能通过电子邮件登录。",
+    "setPassword": "设置密码",
+    "settingPassword": "设置中...",
+    "passwordSet": "密码设置成功。您现在也可以通过电子邮件登录。"
   },
   "onboarding": {
     "title": "欢迎使用 FreelanceHub",

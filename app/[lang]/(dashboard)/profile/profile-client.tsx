@@ -150,6 +150,19 @@ export function ProfileContent() {
     confirmPassword: "",
   });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null); // null = loading
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+
+  // Load account providers to detect if user has a password
+  useEffect(() => {
+    authClient.listAccounts().then(({ data }) => {
+      // better-auth returns accounts with a `provider` field (e.g. "credential", "google")
+      const hasCreds = data?.some(
+        (a: any) => a.provider === "credential" || a.provider === "credentials"
+      ) ?? false;
+      setHasPassword(hasCreds);
+    }).catch(() => setHasPassword(false));
+  }, []);
 
   // Danger Zone State
   const [isDeleting, setIsDeleting] = useState(false);
@@ -229,6 +242,39 @@ export function ProfileContent() {
       newPassword: "",
       confirmPassword: "",
     });
+  };
+
+  const handleSetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error(t("toasts.passwordMismatch"));
+      return;
+    }
+    if (passwordData.newPassword.length < 8) {
+      toast.error(t("toasts.passwordTooShort"));
+      return;
+    }
+    setIsSettingPassword(true);
+    try {
+      // better-auth built-in /set-password endpoint — creates credential account for OAuth users
+      const res = await fetch("/api/auth/set-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPassword: passwordData.newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(t("toasts.failedToChangePassword"), { description: data.message || data.error });
+        return;
+      }
+      toast.success(t("toasts.passwordUpdated"));
+      setHasPassword(true);
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch {
+      toast.error(t("toasts.somethingWentWrong"));
+    } finally {
+      setIsSettingPassword(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -502,82 +548,118 @@ export function ProfileContent() {
                   <CardTitle>{t("profile.changePassword")}</CardTitle>
                 </div>
                 <CardDescription>
-                  {t("profile.passwordDesc")}
+                  {hasPassword === false
+                    ? t("profile.noPasswordDesc")
+                    : t("profile.passwordDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleChangePassword} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="currentPassword">{t("profile.currentPassword")}</Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      placeholder="••••••••"
-                      value={passwordData.currentPassword}
-                      onChange={(e) =>
-                        setPasswordData({
-                          ...passwordData,
-                          currentPassword: e.target.value,
-                        })
-                      }
-                      required
-                    />
+                {/* Google-only user — no password yet */}
+                {hasPassword === false && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border">
+                      <ShieldCheck className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">{t("profile.noPasswordTitle")}</p>
+                        <p className="text-xs text-muted-foreground">{t("profile.noPasswordDesc")}</p>
+                        <p className="text-xs text-muted-foreground">{t("profile.setPasswordPrompt")}</p>
+                      </div>
+                    </div>
+                    <form onSubmit={handleSetPassword} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="newPasswordSet">{t("profile.newPassword")}</Label>
+                          <Input
+                            id="newPasswordSet"
+                            type="password"
+                            placeholder="••••••••"
+                            value={passwordData.newPassword}
+                            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="confirmPasswordSet">{t("profile.confirmPassword")}</Label>
+                          <Input
+                            id="confirmPasswordSet"
+                            type="password"
+                            placeholder="••••••••"
+                            value={passwordData.confirmPassword}
+                            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end pt-2 border-t border-border/50">
+                        <Button type="submit" disabled={isSettingPassword}>
+                          {isSettingPassword ? (
+                            <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("profile.settingPassword")}</>
+                          ) : (
+                            <><Save className="mr-2 h-4 w-4" />{t("profile.setPassword")}</>
+                          )}
+                        </Button>
+                      </div>
+                    </form>
                   </div>
+                )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Email user — has password, show change form */}
+                {hasPassword === true && (
+                  <form onSubmit={handleChangePassword} className="space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="newPassword">{t("profile.newPassword")}</Label>
+                      <Label htmlFor="currentPassword">{t("profile.currentPassword")}</Label>
                       <Input
-                        id="newPassword"
+                        id="currentPassword"
                         type="password"
                         placeholder="••••••••"
-                        value={passwordData.newPassword}
-                        onChange={(e) =>
-                          setPasswordData({
-                            ...passwordData,
-                            newPassword: e.target.value,
-                          })
-                        }
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                         required
                       />
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">
-                        {t("profile.confirmPassword")}
-                      </Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        placeholder="••••••••"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) =>
-                          setPasswordData({
-                            ...passwordData,
-                            confirmPassword: e.target.value,
-                          })
-                        }
-                        required
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">{t("profile.newPassword")}</Label>
+                        <Input
+                          id="newPassword"
+                          type="password"
+                          placeholder="••••••••"
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">{t("profile.confirmPassword")}</Label>
+                        <Input
+                          id="confirmPassword"
+                          type="password"
+                          placeholder="••••••••"
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                          required
+                        />
+                      </div>
                     </div>
-                  </div>
+                    <div className="flex justify-end pt-4 border-t border-border/50">
+                      <Button type="submit" disabled={isChangingPassword}>
+                        {isChangingPassword ? (
+                          <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("profile.updating")}</>
+                        ) : (
+                          <><Save className="mr-2 h-4 w-4" />{t("profile.updatePassword")}</>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
 
-                  <div className="flex justify-end pt-4 border-t border-border/50">
-                    <Button type="submit" disabled={isChangingPassword}>
-                      {isChangingPassword ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {t("profile.updating")}
-                        </>
-                      ) : (
-                        <>
-                          <Save className="mr-2 h-4 w-4" />
-                          {t("profile.updatePassword")}
-                        </>
-                      )}
-                    </Button>
+                {/* Loading state */}
+                {hasPassword === null && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {t("common.loading")}
                   </div>
-                </form>
+                )}
               </CardContent>
             </Card>
           </motion.div>

@@ -447,7 +447,13 @@
     "currency": "العملة",
     "passwordManagement": "إدارة كلمة المرور",
     "passwordSubtitle": "حدّث كلمة مرورك للحفاظ على أمان حسابك.",
-    "password": "كلمة المرور"
+    "password": "كلمة المرور",
+    "noPasswordTitle": "لم يتم تعيين كلمة مرور",
+    "noPasswordDesc": "لقد سجّلت الدخول باستخدام Google. لم تُضف كلمة مرور بعد.",
+    "setPasswordPrompt": "يمكنك تعيين كلمة مرور لتتمكن أيضاً من تسجيل الدخول بالبريد الإلكتروني.",
+    "setPassword": "تعيين كلمة مرور",
+    "settingPassword": "جارٍ التعيين...",
+    "passwordSet": "تم تعيين كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بالبريد الإلكتروني أيضاً."
   },
   "onboarding": {
     "title": "مرحباً بك في FreelanceHub",

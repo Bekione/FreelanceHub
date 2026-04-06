@@ -12,11 +12,20 @@ export async function GET() {
   if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const profile = await prisma.profile.findUnique({
-    where: { userId: session.user.id },
-  });
+  const [profile, credentialAccount] = await Promise.all([
+    prisma.profile.findUnique({ where: { userId: session.user.id } }),
+    // Check if user has a credential (email/password) account
+    prisma.account.findFirst({
+      where: { userId: session.user.id, providerId: "credential" },
+      select: { id: true },
+    }),
+  ]);
 
-  return NextResponse.json(profile ?? {});
+  return NextResponse.json({
+    ...(profile ?? {}),
+    // true = user has a password set; false = Google-only user
+    hasPassword: !!credentialAccount,
+  });
 }
 
 // PATCH: update branding or preferences fields
