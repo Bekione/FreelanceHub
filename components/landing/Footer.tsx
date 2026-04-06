@@ -1,7 +1,7 @@
 import { AppLogo } from "@/components/app-logo";
 import Link from "next/link";
 import packageJson from "@/package.json";
-import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { MarketingLanguageSwitcher } from "@/components/i18n/marketing-language-switcher";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/getDictionary";
 
@@ -121,7 +121,7 @@ export default function Footer({ lang, dict }: FooterProps) {
           <p className="text-sm text-muted-foreground">
             FreelanceHub v{packageJson.version}
           </p>
-          <LanguageSwitcher currentLocale={lang} dropUp />
+          <MarketingLanguageSwitcher currentLocale={lang} dropUp />
           <p className="text-sm text-muted-foreground">
             {dict.madeBy}{" "}
             <a

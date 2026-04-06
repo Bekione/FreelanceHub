@@ -27,6 +27,8 @@ import { AppLogo } from "@/components/app-logo";
 import { cn } from "@/lib/utils";
 import { createT } from "@/lib/i18n/t";
 import type { Dictionary } from "@/lib/i18n/getDictionary";
+import { MarketingLanguageSwitcher } from "@/components/i18n/marketing-language-switcher";
+import type { Locale } from "@/lib/i18n/config";
 
 interface OnboardingContentProps {
   dict: Dictionary;
@@ -138,6 +140,10 @@ export function OnboardingContent({ dict, lang }: OnboardingContentProps) {
 
   return (
     <div className="relative min-h-screen w-full flex flex-col items-center justify-center p-6 sm:p-10 overflow-hidden bg-[#0A0A0A]">
+      {/* Language switcher — top right */}
+      <div className="absolute top-4 end-4 z-20">
+        <MarketingLanguageSwitcher currentLocale={lang as Locale} origin="right" />
+      </div>
       {/* Animated Glowing Background Blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <motion.div

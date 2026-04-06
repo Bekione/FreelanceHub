@@ -6,6 +6,7 @@ import { AppLogo } from "@/components/app-logo";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { MarketingLanguageSwitcher } from "@/components/i18n/marketing-language-switcher";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/getDictionary";
 
@@ -46,7 +47,7 @@ export default function Navbar({ lang, dict }: NavbarProps) {
           ))}
         </div>
         <div className="hidden xl:flex items-center gap-3">
-          <LanguageSwitcher currentLocale={lang} />
+          <MarketingLanguageSwitcher currentLocale={lang} />
           <Link
             href={`/${lang}/register`}
             className="inline-flex items-center px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:brightness-110 transition-all whitespace-nowrap"
@@ -74,7 +75,7 @@ export default function Navbar({ lang, dict }: NavbarProps) {
             </a>
           ))}
           <div className="flex items-center justify-between pt-2 border-t border-foreground/8">
-            <LanguageSwitcher currentLocale={lang} />
+            <MarketingLanguageSwitcher currentLocale={lang} />
             <Link
               href={`/${lang}/register`}
               className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm text-center"
