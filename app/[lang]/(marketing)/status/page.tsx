@@ -1,5 +1,9 @@
 import { getHealth } from "@/lib/health";
 
+// Force dynamic rendering — never cache this page
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const SERVICE_LABELS: Record<string, string> = {
   api: "Web Application & API",
   database: "Database (PostgreSQL)",
