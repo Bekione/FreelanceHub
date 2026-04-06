@@ -1,34 +1,10 @@
-// Server Component — fetches live health data at request time (no-store)
-type ServiceStatus = "operational" | "degraded";
-
-interface HealthResponse {
-  status: "ok" | "degraded";
-  uptime: number;
-  timestamp: string;
-  services: Record<string, { status: ServiceStatus; latencyMs?: number }>;
-}
+import { getHealth } from "@/lib/health";
 
 const SERVICE_LABELS: Record<string, string> = {
   api: "Web Application & API",
   database: "Database (PostgreSQL)",
   authentication: "Authentication Services",
 };
-
-async function fetchHealth(): Promise<HealthResponse | null> {
-  try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_APP_URL ||
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000");
-    const res = await fetch(`${baseUrl}/api/health`, {
-      cache: "no-store",
-    });
-    return res.json();
-  } catch {
-    return null;
-  }
-}
 
 function formatUptime(seconds: number): string {
   if (seconds < 60) return `${seconds}s`;
@@ -38,37 +14,19 @@ function formatUptime(seconds: number): string {
 }
 
 export default async function StatusPage() {
-  const health = await fetchHealth();
+  const health = await getHealth();
 
-  const allOk = health?.status === "ok";
-  const checkedAt = health?.timestamp
-    ? new Date(health.timestamp).toLocaleString("en-US", {
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
-    : null;
+  const allOk = health.status === "ok";
+  const checkedAt = new Date(health.timestamp).toLocaleString("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 
-  const services: { name: string; status: ServiceStatus; latency?: number }[] =
-    health?.services
-      ? Object.entries(health.services).map(([key, data]) => ({
-          name: SERVICE_LABELS[key] ?? key,
-          status: data.status,
-          latency: data.latencyMs,
-        }))
-      : [
-          {
-            name: "Web Application & API",
-            status: "degraded" as ServiceStatus,
-          },
-          {
-            name: "Database (PostgreSQL)",
-            status: "degraded" as ServiceStatus,
-          },
-          {
-            name: "Authentication Services",
-            status: "degraded" as ServiceStatus,
-          },
-        ];
+  const services = Object.entries(health.services).map(([key, data]) => ({
+    name: SERVICE_LABELS[key] ?? key,
+    status: data.status,
+    latency: data.latencyMs,
+  }));
 
   return (
     <div className="container mx-auto py-32 max-w-3xl">
@@ -90,14 +48,9 @@ export default async function StatusPage() {
           />
           {allOk ? "All Systems Operational" : "Partial System Outage"}
         </div>
-        {checkedAt && (
-          <p className="text-sm text-muted-foreground mt-3">
-            Last checked: {checkedAt}
-            {health?.uptime !== undefined && (
-              <> · Uptime: {formatUptime(health.uptime)}</>
-            )}
-          </p>
-        )}
+        <p className="text-sm text-muted-foreground mt-3">
+          Last checked: {checkedAt} · Uptime: {formatUptime(health.uptime)}
+        </p>
       </div>
 
       <div className="space-y-4">
@@ -114,9 +67,7 @@ export default async function StatusPage() {
                     : "bg-red-500 animate-pulse"
                 }`}
               />
-              <span className="font-medium text-foreground">
-                {service.name}
-              </span>
+              <span className="font-medium text-foreground">{service.name}</span>
             </div>
             <div className="flex items-center gap-4 text-sm">
               {service.latency !== undefined && (
@@ -137,12 +88,6 @@ export default async function StatusPage() {
           </div>
         ))}
       </div>
-
-      {!health && (
-        <p className="text-center text-sm text-muted-foreground mt-8">
-          Could not reach health endpoint — status shown above may be stale.
-        </p>
-      )}
     </div>
   );
 }

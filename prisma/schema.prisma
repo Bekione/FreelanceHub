@@ -242,6 +242,12 @@ model Attachment {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
+// ─── System metadata — used for uptime tracking ───────────────────────────────
+model SystemMeta {
+  key   String @id
+  value String
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ENUMS
 // ─────────────────────────────────────────────────────────────────────────────
