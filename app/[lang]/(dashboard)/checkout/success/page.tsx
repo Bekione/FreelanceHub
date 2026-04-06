@@ -85,7 +85,7 @@ export default function CheckoutSuccessPage() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-md space-y-8 glass p-10 rounded-2xl text-center relative"
+        className="w-full max-w-md space-y-8 glass p-10 text-center relative"
       >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -mt-8 w-40 h-20 bg-primary/30 blur-3xl rounded-full" />
 
@@ -107,7 +107,7 @@ export default function CheckoutSuccessPage() {
         </div>
 
         {/* Plan summary */}
-        <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 flex items-center gap-3">
+        <div className="p-4 border border-primary/20 bg-primary/5 flex items-center gap-3">
           <Zap className="w-5 h-5 text-primary shrink-0" />
           <div className="text-left">
             <p className="text-sm font-semibold">{t("checkout.planName")}</p>
