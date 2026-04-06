@@ -45,8 +45,9 @@ export async function POST() {
           quantity: 1,
         },
       ],
-      success_url: `${appUrl}/checkout/success`,
-      cancel_url: `${appUrl}/checkout/cancel`,
+      // Use /en/ prefix so the proxy doesn't need to redirect
+      success_url: `${appUrl}/en/checkout/success`,
+      cancel_url: `${appUrl}/en/checkout/cancel`,
       metadata: { userId: user.id },
       subscription_data: {
         metadata: { userId: user.id },
