@@ -34,6 +34,9 @@ model User {
   subscriptionStatus   String?   // active | past_due | canceled | unpaid
   currentPeriodEnd     DateTime?
 
+  // Rate Limiting
+  lastEmailSentAt      DateTime?
+
   // App relations
   profile       Profile?
   projects      Project[]
@@ -88,6 +91,13 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@unique([identifier, value])
+}
+
+model RateLimit {
+  id          String   @id
+  key         String
+  count       Int
+  lastRequest DateTime
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
