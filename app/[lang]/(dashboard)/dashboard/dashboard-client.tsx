@@ -1,15 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  DollarSign,
-  FolderOpen,
-  FileText,
-  Users,
-  Clock,
-} from "lucide-react";
-import { useDataStore } from "@/store/data-store";
+import { DollarSign, FolderOpen, FileText, Users, Clock } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -18,9 +11,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardInsights } from "@/components/dashboard/dashboard-insights";
 import { useTranslation } from "@/lib/i18n/translation-context";
+import { metricsQueryOptions } from "@/lib/queries/dashboard";
 
 function statusVariant(status: string) {
   switch (status) {
@@ -34,7 +27,7 @@ function statusVariant(status: string) {
 }
 
 /** Translate a status string using project or invoice status keys */
-function useStatusLabel(status: string, t: (key: string) => string): string {
+function getStatusLabel(status: string, t: (key: string) => string): string {
   const projectKey = `projects.status.${status}`;
   const invoiceKey = `invoices.status_values.${status}`;
   const fromProject = t(projectKey);
@@ -45,68 +38,50 @@ function useStatusLabel(status: string, t: (key: string) => string): string {
 }
 
 export function DashboardContent() {
-  const { dashboardMetrics, isLoadingMetrics, fetchMetrics, fetchInvoices } =
-    useDataStore();
+  // useSuspenseQuery — data is guaranteed to be available (prefetched on server)
+  // Component will suspend until data is ready, no need for loading checks
+  const { data: metrics } = useSuspenseQuery(metricsQueryOptions());
   const t = useTranslation();
-
-  useEffect(() => {
-    fetchMetrics();
-    fetchInvoices(); // Needed so RevenueChart can read PAID invoices from the store
-  }, [fetchMetrics, fetchInvoices]);
-
-  // Only show skeleton on the very first visit (no cached data yet)
-  const isLoading = isLoadingMetrics && !dashboardMetrics;
-
-  const stats = dashboardMetrics || {
-    totalRevenue: 0,
-    activeProjects: 0,
-    totalProjects: 0,
-    pendingInvoicesCount: 0,
-    pendingInvoicesAmount: 0,
-    totalClients: 0,
-  };
-
-  const recentActivity = dashboardMetrics?.recentActivity || [];
-
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
 
   const statCards = [
     {
       label: t("dashboard.totalRevenue"),
-      value: stats.totalRevenue.toLocaleString(),
+      value: metrics.totalRevenue.toLocaleString(),
       sub: t("dashboard.fromPaidInvoices"),
       icon: DollarSign,
       iconColor: "text-green-600 dark:text-green-500",
     },
     {
       label: t("dashboard.activeProjects"),
-      value: stats.activeProjects,
-      sub: `${stats.totalProjects} ${t("dashboard.total")}`,
+      value: metrics.activeProjects,
+      sub: `${metrics.totalProjects} ${t("dashboard.total")}`,
       icon: FolderOpen,
       iconColor: "text-blue-600 dark:text-blue-400",
     },
     {
       label: t("dashboard.pendingInvoices"),
-      value: stats.pendingInvoicesCount,
-      sub: `${stats.pendingInvoicesAmount.toLocaleString()} ${t("dashboard.outstanding")}`,
+      value: metrics.pendingInvoicesCount,
+      sub: `${metrics.pendingInvoicesAmount.toLocaleString()} ${t("dashboard.outstanding")}`,
       icon: FileText,
       iconColor: "text-orange-600 dark:text-orange-400",
     },
     {
       label: t("dashboard.totalClients"),
-      value: stats.totalClients,
+      value: metrics.totalClients,
       sub: t("dashboard.inYourNetwork"),
       icon: Users,
       iconColor: "text-purple-600 dark:text-purple-400",
     },
   ];
 
+  const recentActivity = metrics.recentActivity ?? [];
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-3xl font-bold font-heading">{t("dashboard.title")}</h2>
+        <h2 className="text-3xl font-bold font-heading">
+          {t("dashboard.title")}
+        </h2>
         <p className="text-muted-foreground mt-1">{t("dashboard.subtitle")}</p>
       </div>
 
@@ -151,31 +126,44 @@ export function DashboardContent() {
                 <Clock className="h-4 w-4 text-primary" />
                 {t("dashboard.recentActivity")}
               </CardTitle>
-              <CardDescription>{t("dashboard.latestProjectsInvoices")}</CardDescription>
+              <CardDescription>
+                {t("dashboard.latestProjectsInvoices")}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {recentActivity.length > 0 ? (
-                recentActivity.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between gap-4"
-                  >
-                    <div className="space-y-0.5 min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-none truncate">
-                        {item.label}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {item.sub}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={statusVariant(item.status)}
-                      className="capitalize text-xs shrink-0"
+                recentActivity.map(
+                  (
+                    item: {
+                      type: string;
+                      label: string;
+                      sub: string;
+                      status: string;
+                      date: Date | string;
+                    },
+                    i: number,
+                  ) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between gap-4"
                     >
-                      {useStatusLabel(item.status, t)}
-                    </Badge>
-                  </div>
-                ))
+                      <div className="space-y-0.5 min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-none truncate">
+                          {item.label}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {item.sub}
+                        </p>
+                      </div>
+                      <Badge
+                        variant={statusVariant(item.status) as any}
+                        className="capitalize text-xs shrink-0"
+                      >
+                        {getStatusLabel(item.status, t)}
+                      </Badge>
+                    </div>
+                  ),
+                )
               ) : (
                 <div className="text-center py-8 text-sm text-muted-foreground">
                   {t("dashboard.noRecentActivity")}
@@ -184,66 +172,6 @@ export function DashboardContent() {
             </CardContent>
           </Card>
         </motion.div>
-      </div>
-    </div>
-  );
-}
-
-function DashboardSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div>
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-4 w-96 mt-2" />
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[
-          { isCurrency: true },
-          { isCurrency: false },
-          { isCurrency: false },
-          { isCurrency: false },
-        ].map((card, i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-4 rounded-full" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center text-2xl font-bold">
-                {card.isCurrency && <span className="mr-1">$</span>}
-                <Skeleton className="h-8 w-24" />
-              </div>
-              <Skeleton className="h-3 w-32 mt-2" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <div className="grid gap-6 lg:grid-cols-7">
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-            <Skeleton className="h-4 w-48" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-[300px] w-full" />
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <Skeleton className="h-6 w-32" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-                <Skeleton className="h-6 w-16" />
-              </div>
-            ))}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
