@@ -1,6 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useSuspenseQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -23,7 +28,9 @@ import {
   Loader2 as SpinnerLoader,
   Camera,
 } from "lucide-react";
-import { useDataStore, type Client } from "@/store/data-store";
+import type { Client } from "@/lib/types";
+import { clientsQueryOptions } from "@/lib/queries/clients";
+import { queryKeys } from "@/lib/queries/keys";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { FREE_LIMITS } from "@/lib/subscription/limits";
 import { useSession } from "@/lib/auth-client";
@@ -61,16 +68,7 @@ import { useTranslation } from "@/lib/i18n/translation-context";
 const emptyForm = { name: "", email: "", company: "", phone: "", notes: "" };
 
 export function ClientsContent() {
-  const {
-    clients,
-    clientsMeta,
-    isLoadingClients,
-    fetchClients,
-    createClient,
-    updateClient,
-    deleteClient,
-    setClients,
-  } = useDataStore();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -82,6 +80,12 @@ export function ClientsContent() {
   const [currentPage, setCurrentPage] = useState(
     Number(searchParams.get("page")) || 1,
   );
+
+  const { data } = useSuspenseQuery(
+    clientsQueryOptions({ page: currentPage, limit: 9, q: debouncedSearch }),
+  );
+  const clients = data?.data ?? [];
+  const clientsMeta = data?.metadata ?? null;
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -150,13 +154,7 @@ export function ClientsContent() {
     setCurrentPage(1);
   }, [debouncedSearch]);
 
-  useEffect(() => {
-    fetchClients({
-      page: currentPage,
-      limit: 9,
-      q: debouncedSearch,
-    });
-  }, [fetchClients, currentPage, debouncedSearch]);
+  // Data is fetched reactively by useSuspenseQuery above — no manual effect needed
 
   const openCreate = () => {
     setEditingClient(null);
@@ -229,40 +227,74 @@ export function ClientsContent() {
     }
   };
 
-  const onSubmit = async (data: typeof emptyForm) => {
-    // For new clients, attach the uploaded photo URL to the create payload
-    const payload: typeof emptyForm & { imageUrl?: string } = { ...data };
-    if (!editingClient && uploadedImageUrl) payload.imageUrl = uploadedImageUrl;
-    const result = editingClient
-      ? await updateClient(editingClient.id, payload)
-      : await createClient(payload);
-    if (result.error) {
-      if ((result as any).code === "UPGRADE_REQUIRED") {
+  const saveMutation = useMutation({
+    mutationFn: async (payload: typeof emptyForm & { imageUrl?: string }) => {
+      const url = editingClient
+        ? `/api/clients/${editingClient.id}`
+        : "/api/clients";
+      const method = editingClient ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.clients() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.metrics() });
+      toast.success(
+        editingClient ? t("toasts.clientUpdated") : t("toasts.clientAdded"),
+      );
+      setIsFormOpen(false);
+    },
+    onError: (err: any) => {
+      if (err?.error === "UPGRADE_REQUIRED") {
         setIsFormOpen(false);
         setUpgradeResource("clients");
         setShowUpgradeModal(true);
         return;
       }
-      toast.error(t("toasts.failed"), { description: result.error });
-      return;
-    }
-    toast.success(editingClient ? t("toasts.clientUpdated") : t("toasts.clientAdded"));
-    setIsFormOpen(false);
+      toast.error(t("toasts.failed"), {
+        description: err?.error ?? "Unknown error",
+      });
+    },
+  });
+
+  const onSubmit = async (formData: typeof emptyForm) => {
+    const payload: typeof emptyForm & { imageUrl?: string } = { ...formData };
+    if (!editingClient && uploadedImageUrl) payload.imageUrl = uploadedImageUrl;
+    saveMutation.mutate(payload);
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.clients() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.metrics() });
+      toast.success(t("toasts.clientDeleted"));
+      setIsDeleteOpen(false);
+    },
+    onError: (err: any) => {
+      toast.error(t("toasts.failed"), {
+        description: err?.error ?? "Unknown error",
+      });
+    },
+  });
 
   const handleDelete = async () => {
     if (!deletingClient) return;
-    setIsDeleting(true);
-    const result = await deleteClient(deletingClient.id);
-    setIsDeleting(false);
-    if (result.error) {
-      // Keep the dialog open — let user read the error and decide
-      toast.error(t("toasts.failed"), { description: result.error });
-      return;
-    }
-    toast.success(t("toasts.clientDeleted"));
-    setIsDeleteOpen(false);
+    deleteMutation.mutate(deletingClient.id);
   };
+
+  const isDeleting = deleteMutation.isPending;
 
   const handleTogglePortal = async (
     client: Client,
@@ -315,7 +347,7 @@ export function ClientsContent() {
   };
 
   const totalClients = clientsMeta?.totalItems ?? clients.length;
-  const atLimit = !isLoadingClients && totalClients >= FREE_LIMITS.clients;
+  const atLimit = totalClients >= FREE_LIMITS.clients;
 
   return (
     <>
@@ -327,14 +359,16 @@ export function ClientsContent() {
       <div className="space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-bold font-heading">{t("clients.title")}</h2>
+            <h2 className="text-3xl font-bold font-heading">
+              {t("clients.title")}
+            </h2>
             <p className="text-muted-foreground mt-1">
               {t("clients.subtitle")}
             </p>
           </div>
           <div className="flex items-center gap-3">
             {/* Usage indicator for Free users */}
-            {!isLoadingClients && clientsMeta && !isPro && (
+            {clientsMeta && !isPro && (
               <div className="hidden sm:flex flex-col items-end gap-1">
                 <span className="text-xs text-muted-foreground">
                   {totalClients} / {FREE_LIMITS.clients} {t("clients.usedOf")}
@@ -397,220 +431,195 @@ export function ClientsContent() {
           </div>
         </div>
 
-        {isLoadingClients ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i} className="h-full flex flex-col">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start gap-4">
-                    <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                    <div className="flex-1 space-y-2 pt-1">
-                      <Skeleton className="h-5 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {clients.length > 0 ? (
+            clients.map((client, index) => (
+              <motion.div
+                key={client.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="h-full group hover:shadow-md transition-shadow flex flex-col bg-card overflow-hidden border-border/50">
+                  <CardHeader className="pb-4 flex-none">
+                    <div className="flex items-start gap-4">
+                      <Avatar className="h-10 w-10 border-2 border-primary/10 shrink-0">
+                        {(client as any).imageUrl && (
+                          <AvatarImage
+                            src={(client as any).imageUrl}
+                            alt={client.name}
+                            className="object-cover"
+                          />
+                        )}
+                        <AvatarFallback className="bg-primary/5 text-primary font-semibold">
+                          {client.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 space-y-0.5">
+                        <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors truncate">
+                          {client.name}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-1">
+                          <Building className="h-3 w-3 shrink-0" />
+                          <span className="truncate">
+                            {client.company || "—"}
+                          </span>
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => openEdit(client)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          onClick={() => openDelete(client)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0 flex-1 flex flex-col justify-end">
-                  <Skeleton className="h-4 w-full mr-4" />
-                  <Skeleton className="h-4 w-4/5" />
-                  <div className="pt-2 border-t border-border/50">
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {clients.length > 0 ? (
-              clients.map((client, index) => (
-                <motion.div
-                  key={client.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Card className="h-full group hover:shadow-md transition-shadow flex flex-col bg-card overflow-hidden border-border/50">
-                    <CardHeader className="pb-4 flex-none">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="h-10 w-10 border-2 border-primary/10 shrink-0">
-                          {(client as any).imageUrl && (
-                            <AvatarImage
-                              src={(client as any).imageUrl}
-                              alt={client.name}
-                              className="object-cover"
-                            />
-                          )}
-                          <AvatarFallback className="bg-primary/5 text-primary font-semibold">
-                            {client.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()
-                              .slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0 space-y-0.5">
-                          <CardTitle className="text-base leading-tight group-hover:text-primary transition-colors truncate">
-                            {client.name}
-                          </CardTitle>
-                          <CardDescription className="flex items-center gap-1">
-                            <Building className="h-3 w-3 shrink-0" />
-                            <span className="truncate">
-                              {client.company || "—"}
-                            </span>
-                          </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 flex flex-col flex-1 px-4 ">
+                    <div className="space-y-2.5">
+                      {client.email && (
+                        <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                          <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                            <Mail className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="truncate">{client.email}</span>
                         </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => openEdit(client)}
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive hover:text-destructive"
-                            onClick={() => openDelete(client)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                      )}
+                      {client.phone && (
+                        <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                          <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+                            <Phone className="h-3.5 w-3.5" />
+                          </div>
+                          <span>{client.phone}</span>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-4 flex flex-col flex-1 px-4 ">
-                      <div className="space-y-2.5">
-                        {client.email && (
-                          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                            <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                              <Mail className="h-3.5 w-3.5" />
-                            </div>
-                            <span className="truncate">{client.email}</span>
-                          </div>
-                        )}
-                        {client.phone && (
-                          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                            <div className="h-7 w-7 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
-                              <Phone className="h-3.5 w-3.5" />
-                            </div>
-                            <span>{client.phone}</span>
-                          </div>
-                        )}
-                      </div>
+                      )}
+                    </div>
 
-                      <div className="mt-auto border-t border-border/50 flex justify-between items-center pt-4">
-                        {client._count && (
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span
-                              className="flex items-center gap-1"
-                              title={
-                                client._count.projects.toString() + " Projects"
-                              }
-                            >
-                              <FolderOpen className="h-3 w-3" />
-                              {client._count.projects}
-                            </span>
-                            <span
-                              className="flex items-center gap-1"
-                              title={
-                                client._count.invoices.toString() + " Invoices"
-                              }
-                            >
-                              <FileText className="h-3 w-3" />
-                              {client._count.invoices}
-                            </span>
-                          </div>
-                        )}
+                    <div className="mt-auto border-t border-border/50 flex justify-between items-center pt-4">
+                      {client._count && (
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span
+                            className="flex items-center gap-1"
+                            title={
+                              client._count.projects.toString() + " Projects"
+                            }
+                          >
+                            <FolderOpen className="h-3 w-3" />
+                            {client._count.projects}
+                          </span>
+                          <span
+                            className="flex items-center gap-1"
+                            title={
+                              client._count.invoices.toString() + " Invoices"
+                            }
+                          >
+                            <FileText className="h-3 w-3" />
+                            {client._count.invoices}
+                          </span>
+                        </div>
+                      )}
 
-                        {/* Interactive Portal actions */}
-                        <div className="flex items-center gap-2">
-                          {client.hasPortal ? (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => copyPortalLink(client)}
-                                className="h-8 gap-1 text-primary hover:text-primary transition-colors"
-                              >
-                                <Link className="h-3.5 w-3.5" /> {t("clients.portal.copy")}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  handleTogglePortal(client, "DISABLE")
-                                }
-                                disabled={isTogglingPortal === client.id}
-                                className="h-8 gap-1 text-destructive hover:text-destructive transition-colors border-destructive/20 hover:bg-destructive/10"
-                              >
-                                {isTogglingPortal === client.id ? (
-                                  <SpinnerLoader className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  t("clients.portal.disable")
-                                )}
-                              </Button>
-                            </>
-                          ) : (
+                      {/* Interactive Portal actions */}
+                      <div className="flex items-center gap-2">
+                        {client.hasPortal ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyPortalLink(client)}
+                              className="h-8 gap-1 text-primary hover:text-primary transition-colors"
+                            >
+                              <Link className="h-3.5 w-3.5" />{" "}
+                              {t("clients.portal.copy")}
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() =>
-                                handleTogglePortal(client, "ENABLE")
+                                handleTogglePortal(client, "DISABLE")
                               }
                               disabled={isTogglingPortal === client.id}
-                              className="h-8 gap-1 text-muted-foreground hover:text-foreground transition-colors bg-transparent"
+                              className="h-8 gap-1 text-destructive hover:text-destructive transition-colors border-destructive/20 hover:bg-destructive/10"
                             >
                               {isTogglingPortal === client.id ? (
                                 <SpinnerLoader className="h-3.5 w-3.5 animate-spin" />
                               ) : (
-                                <>
-                                  <Globe className="h-3.5 w-3.5" /> {t("clients.portal.enable")}
-                                </>
+                                t("clients.portal.disable")
                               )}
                             </Button>
-                          )}
-                        </div>
+                          </>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTogglePortal(client, "ENABLE")}
+                            disabled={isTogglingPortal === client.id}
+                            className="h-8 gap-1 text-muted-foreground hover:text-foreground transition-colors bg-transparent"
+                          >
+                            {isTogglingPortal === client.id ? (
+                              <SpinnerLoader className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <>
+                                <Globe className="h-3.5 w-3.5" />{" "}
+                                {t("clients.portal.enable")}
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))
-            ) : debouncedSearch !== "" ? (
-              <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
-                <Search className="h-10 w-10 text-muted-foreground/30" />
-                <p className="text-lg font-medium text-foreground">
-                  {t("clients.noMatch")}
-                </p>
-                <p className="text-sm text-muted-foreground max-w-sm text-center">
-                  {t("clients.noMatchQuery").replace("{query}", debouncedSearch)}
-                </p>
-                <Button
-                  variant="ghost"
-                  className="mt-2"
-                  onClick={() => setSearchTerm("")}
-                >
-                  {t("clients.clearSearch")}
-                </Button>
-              </div>
-            ) : (
-              <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
-                <UserPlus className="h-10 w-10 text-muted-foreground/50" />
-                <p className="text-lg font-medium text-muted-foreground">
-                  {t("clients.empty")}
-                </p>
-                <p className="text-sm text-muted-foreground/60">
-                  {t("clients.emptySubtitle")}
-                </p>
-                <Button variant="outline" className="mt-4" onClick={openCreate}>
-                  <Plus className="mr-2 h-4 w-4" /> {t("clients.addFirst")}
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))
+          ) : debouncedSearch !== "" ? (
+            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+              <Search className="h-10 w-10 text-muted-foreground/30" />
+              <p className="text-lg font-medium text-foreground">
+                {t("clients.noMatch")}
+              </p>
+              <p className="text-sm text-muted-foreground max-w-sm text-center">
+                {t("clients.noMatchQuery").replace("{query}", debouncedSearch)}
+              </p>
+              <Button
+                variant="ghost"
+                className="mt-2"
+                onClick={() => setSearchTerm("")}
+              >
+                {t("clients.clearSearch")}
+              </Button>
+            </div>
+          ) : (
+            <div className="col-span-full py-16 text-center rounded-none border-2 border-dashed border-border flex flex-col items-center justify-center gap-2">
+              <UserPlus className="h-10 w-10 text-muted-foreground/50" />
+              <p className="text-lg font-medium text-muted-foreground">
+                {t("clients.empty")}
+              </p>
+              <p className="text-sm text-muted-foreground/60">
+                {t("clients.emptySubtitle")}
+              </p>
+              <Button variant="outline" className="mt-4" onClick={openCreate}>
+                <Plus className="mr-2 h-4 w-4" /> {t("clients.addFirst")}
+              </Button>
+            </div>
+          )}
+        </div>
 
         {/* Pagination Controls */}
         {clientsMeta && clientsMeta.totalPages > 1 && (
@@ -656,7 +665,9 @@ export function ClientsContent() {
           <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
               <DialogTitle>
-                {editingClient ? t("clients.form.editClient") : t("clients.form.newClient")}
+                {editingClient
+                  ? t("clients.form.editClient")
+                  : t("clients.form.newClient")}
               </DialogTitle>
               <DialogDescription>
                 {editingClient
@@ -767,7 +778,9 @@ export function ClientsContent() {
                   {isSubmitting && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  {editingClient ? t("clients.form.updateClient") : t("clients.form.createClient")}
+                  {editingClient
+                    ? t("clients.form.updateClient")
+                    : t("clients.form.createClient")}
                 </Button>
               </DialogFooter>
             </form>
@@ -781,7 +794,8 @@ export function ClientsContent() {
               <DialogTitle>{t("clients.delete.title")}</DialogTitle>
               <DialogDescription>
                 {t("clients.delete.description")}{" "}
-                <strong>{deletingClient?.name}</strong>? {t("clients.delete.warning")}
+                <strong>{deletingClient?.name}</strong>?{" "}
+                {t("clients.delete.warning")}
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
