@@ -57,6 +57,13 @@ export async function POST(req: Request) {
   if (!session?.user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  if (!session.user.emailVerified) {
+    return NextResponse.json(
+      { error: "Email verification required to perform this action." },
+      { status: 403 },
+    );
+  }
+
   // ── Free-tier hard gate ────────────────────────────────────────────────────
   const { checkLimit } = await import("@/lib/subscription/check-limit");
   const limitCheck = await checkLimit(
