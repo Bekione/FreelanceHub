@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSuspenseQuery, useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -18,7 +19,12 @@ import {
   Zap,
   Printer,
 } from "lucide-react";
-import { useDataStore, type Invoice } from "@/store/data-store";
+import type { Invoice } from "@/lib/types";
+import { invoicesQueryOptions } from "@/lib/queries/invoices";
+import { metricsQueryOptions } from "@/lib/queries/dashboard";
+import { clientsQueryOptions } from "@/lib/queries/clients";
+import { projectsQueryOptions } from "@/lib/queries/projects";
+import { queryKeys } from "@/lib/queries/keys";
 import { UpgradeModal } from "@/components/upgrade-modal";
 import { FREE_LIMITS } from "@/lib/subscription/limits";
 import { useSession } from "@/lib/auth-client";
@@ -94,23 +100,7 @@ const emptyForm = {
 };
 
 export function InvoicesContent() {
-  const {
-    invoices,
-    invoicesMeta,
-    dashboardMetrics,
-    isLoadingMetrics,
-    clients,
-    projects,
-    isLoadingInvoices,
-    fetchInvoices,
-    fetchClients,
-    fetchProjects,
-    fetchMetrics,
-    createInvoice,
-    updateInvoice,
-    deleteInvoice,
-    markInvoicePaid,
-  } = useDataStore();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -125,12 +115,23 @@ export function InvoicesContent() {
   const [currentPage, setCurrentPage] = useState(
     Number(searchParams.get("page")) || 1,
   );
+
+  const { data: invoicesData } = useSuspenseQuery(
+    invoicesQueryOptions({ page: currentPage, limit: 10, q: debouncedSearch, status: statusFilter })
+  );
+  const invoices = invoicesData?.data ?? [];
+  const invoicesMeta = invoicesData?.metadata ?? null;
+
+  const { data: metricsData } = useSuspenseQuery(metricsQueryOptions());
+  const { data: clientsData } = useQuery(clientsQueryOptions({ limit: 100 }));
+  const { data: projectsData } = useQuery(projectsQueryOptions({ limit: 100 }));
+  const clients = clientsData?.data ?? [];
+  const projects = projectsData?.data ?? [];
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
 
   // Sync state to URL
   const updateUrl = useCallback(() => {
@@ -205,25 +206,7 @@ export function InvoicesContent() {
     setCurrentPage(1);
   }, [debouncedSearch, statusFilter]);
 
-  useEffect(() => {
-    fetchInvoices({
-      page: currentPage,
-      limit: 10,
-      q: debouncedSearch,
-      status: statusFilter,
-    });
-    fetchClients();
-    fetchProjects();
-    fetchMetrics();
-  }, [
-    currentPage,
-    debouncedSearch,
-    statusFilter,
-    fetchInvoices,
-    fetchClients,
-    fetchProjects,
-    fetchMetrics,
-  ]);
+  // Data is fetched reactively by hooks above — no manual effect needed
 
   const openCreate = () => {
     setEditingInvoice(null);
@@ -250,58 +233,97 @@ export function InvoicesContent() {
     setIsDeleteOpen(true);
   };
 
-  const onSubmit = async (data: typeof emptyForm) => {
-    const payload = {
-      ...data,
-      amount: data.amount ? parseFloat(data.amount) : 0,
-      clientId: data.clientId || null,
-      projectId: data.projectId || null,
-      // Only send status when editing (new invoices are always draft)
-      ...(editingInvoice ? { status: data.status } : {}),
-    };
-    const result = editingInvoice
-      ? await updateInvoice(editingInvoice.id, payload)
-      : await createInvoice(payload);
-    if (result.error) {
-      if ((result as any).code === "UPGRADE_REQUIRED") {
+  const saveMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const url = editingInvoice ? `/api/invoices/${editingInvoice.id}` : "/api/invoices";
+      const method = editingInvoice ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.invoices() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.metrics() });
+      toast.success(editingInvoice ? t("toasts.invoiceUpdated") : t("toasts.invoiceCreated"));
+      setIsFormOpen(false);
+    },
+    onError: (err: any) => {
+      if (err?.error === "UPGRADE_REQUIRED") {
         setIsFormOpen(false);
         setShowUpgradeModal(true);
         return;
       }
-      toast.error(t("toasts.failed"), { description: result.error });
-      return;
-    }
-    toast.success(editingInvoice ? t("toasts.invoiceUpdated") : t("toasts.invoiceCreated"));
-    setIsFormOpen(false);
+      toast.error(t("toasts.failed"), { description: err?.error ?? "Unknown error" });
+    },
+  });
+
+  const onSubmit = async (formData: typeof emptyForm) => {
+    const payload = {
+      ...formData,
+      amount: formData.amount ? parseFloat(formData.amount) : 0,
+      clientId: formData.clientId || null,
+      projectId: formData.projectId || null,
+      ...(editingInvoice ? { status: formData.status } : {}),
+    };
+    saveMutation.mutate(payload);
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.invoices() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.metrics() });
+      toast.success(t("toasts.invoiceDeleted"));
+      setIsDeleteOpen(false);
+    },
+    onError: (err: any) => {
+      toast.error(t("toasts.failedToDelete"), { description: err?.error ?? "Unknown error" });
+    },
+  });
 
   const handleDelete = async () => {
     if (!deletingInvoice) return;
-    setIsDeleting(true);
-    const result = await deleteInvoice(deletingInvoice.id);
-    setIsDeleting(false);
-    if (result.error) {
-      // Keep dialog open — let user read the error
-      toast.error(t("toasts.failedToDelete"), { description: result.error });
-      return;
-    }
-    toast.success(t("toasts.invoiceDeleted"));
-    setIsDeleteOpen(false);
+    deleteMutation.mutate(deletingInvoice.id);
   };
+
+  const markPaidMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/invoices/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "PAID" }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.invoices() });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.metrics() });
+      toast.success(t("toasts.invoiceMarkedPaid"));
+    },
+    onError: (err: any) => {
+      toast.error(t("toasts.failed"), { description: err?.error ?? "Unknown error" });
+    },
+  });
 
   const handleMarkPaid = async (id: string) => {
-    setMarkingPaidId(id);
-    const result = await markInvoicePaid(id);
-    setMarkingPaidId(null);
-    if (result.error) {
-      toast.error(t("toasts.failed"), { description: result.error });
-      return;
-    }
-    toast.success(t("toasts.invoiceMarkedPaid"));
+    markPaidMutation.mutate(id);
   };
 
-  // Only show the full table skeleton on the very first load
-  const showSkeleton = isLoadingInvoices && invoices.length === 0;
+  const markingPaidId = markPaidMutation.isPending ? markPaidMutation.variables : null;
+  const isDeleting = deleteMutation.isPending;
+
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const { data: session } = useSession();
@@ -310,13 +332,12 @@ export function InvoicesContent() {
     (session?.user as any)?.subscriptionStatus === "active" ||
     (session?.user as any)?.subscriptionStatus === "past_due";
   const totalAmount =
-    (dashboardMetrics?.totalRevenue || 0) +
-    (dashboardMetrics?.pendingInvoicesAmount || 0);
-  const paidAmount = dashboardMetrics?.totalRevenue || 0;
-  const pendingAmount = dashboardMetrics?.pendingInvoicesAmount || 0;
+    (metricsData?.totalRevenue || 0) +
+    (metricsData?.pendingInvoicesAmount || 0);
+  const paidAmount = metricsData?.totalRevenue || 0;
+  const pendingAmount = metricsData?.pendingInvoicesAmount || 0;
   const totalInvoices = invoicesMeta?.totalItems ?? invoices.length;
-  const atLimit =
-    !showSkeleton && totalInvoices >= FREE_LIMITS.invoicesPerMonth;
+  const atLimit = totalInvoices >= FREE_LIMITS.invoicesPerMonth;
 
   return (
     <>
@@ -334,7 +355,7 @@ export function InvoicesContent() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {!showSkeleton && invoicesMeta && !isPro && (
+            {!isPro && invoicesMeta && (
               <div className="hidden sm:flex flex-col items-end gap-1">
                 <span className="text-xs text-muted-foreground">
                   {totalInvoices} / {FREE_LIMITS.invoicesPerMonth} {t("invoices.usedOf")}
@@ -401,11 +422,7 @@ export function InvoicesContent() {
                     className={`flex items-center text-2xl font-bold ${stat.color}`}
                   >
                     <span className="mr-1">$</span>
-                    {isLoadingMetrics && !dashboardMetrics ? (
-                      <Skeleton className="h-6 w-24" />
-                    ) : (
-                      stat.value.toLocaleString()
-                    )}
+                    {stat.value.toLocaleString()}
                   </div>
                 </CardContent>
               </Card>
@@ -461,13 +478,6 @@ export function InvoicesContent() {
         >
           <Card className="p-0">
             <div className="border border-border/50">
-              {showSkeleton ? (
-                <div className="p-4 space-y-3">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-14 w-full" />
-                  ))}
-                </div>
-              ) : (
                 <Table>
                   <TableHeader className="bg-muted/50">
                     <TableRow>
@@ -622,7 +632,7 @@ export function InvoicesContent() {
                     )}
                   </TableBody>
                 </Table>
-              )}
+              
             </div>
             {/* Pagination Controls */}
             {invoicesMeta && invoicesMeta.totalPages > 1 && (
