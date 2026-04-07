@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useSession } from "@/lib/auth-client";
+import { useSession, authClient } from "@/lib/auth-client";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
@@ -14,7 +14,11 @@ import {
   Loader2,
   ExternalLink,
   Shield,
+  MailCheck,
+  ShieldCheck,
+  RefreshCw,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -36,11 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { FREE_LIMITS } from "@/lib/subscription/limits";
 import { UpgradeModal } from "@/components/upgrade-modal";
-import {
-  locales,
-  freeLocales,
-  LOCALE_DISPLAY_NAMES,
-} from "@/lib/i18n/config";
+import { locales, freeLocales, LOCALE_DISPLAY_NAMES } from "@/lib/i18n/config";
 import type { Locale, FreeLocale } from "@/lib/i18n/config";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/translation-context";
@@ -57,7 +57,12 @@ interface UsageData {
 const TABS = [
   { id: "account", labelKey: "settings.account", icon: User },
   { id: "billing", labelKey: "settings.billing", icon: CreditCard },
-  { id: "branding", labelKey: "settings.branding", icon: Palette, proOnly: true },
+  {
+    id: "branding",
+    labelKey: "settings.branding",
+    icon: Palette,
+    proOnly: true,
+  },
 ];
 
 // ─── Usage Bar ─────────────────────────────────────────────────────────────────
@@ -135,7 +140,30 @@ export function SettingsContent() {
   const [isSavingPref, setIsSavingPref] = useState(false);
   const [isSavingBrand, setIsSavingBrand] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [cooldown, setCooldown] = useState(0);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  // Persistent Cooldown
+  useEffect(() => {
+    const checkCooldown = () => {
+      const lastSent = localStorage.getItem("otp-last-sent");
+      if (lastSent) {
+        const remaining =
+          60 - Math.floor((Date.now() - parseInt(lastSent)) / 1000);
+        if (remaining > 0) {
+          setCooldown(remaining);
+        } else {
+          setCooldown(0);
+        }
+      }
+    };
+    checkCooldown();
+    const interval = setInterval(checkCooldown, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Branding local state
   const [brandColor, setBrandColor] = useState("#f59e0b");
@@ -242,6 +270,53 @@ export function SettingsContent() {
       toast.error(t("toasts.failedToBillingPortal"));
     } finally {
       setIsLoadingPortal(false);
+    }
+  };
+
+  const handleSendVerificationCode = async () => {
+    if (cooldown > 0) return;
+    localStorage.setItem("otp-last-sent", Date.now().toString());
+    setCooldown(60);
+    setIsSendingOtp(true);
+    try {
+      const { error } = await (authClient as any).emailOtp.sendVerificationOtp({
+        email: user?.email,
+        type: "email-verification",
+      });
+      if (error) {
+        toast.error(t("toasts.verificationSentFail"));
+      } else {
+        setShowOTP(true);
+        toast.success(t("toasts.verificationSent"));
+      }
+    } catch {
+      toast.error(t("toasts.verificationSentFail"));
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length < 6) return;
+    setIsSendingOtp(true);
+    try {
+      const { error } = await (authClient as any).emailOtp.verifyEmail({
+        email: user?.email,
+        otp,
+      });
+      if (error) {
+        toast.error(t("toasts.invalidVerificationCode"));
+        setOtp("");
+      } else {
+        toast.success(t("toasts.emailVerified"));
+        setShowOTP(false);
+        // Silently refresh the session or trigger a full reload
+        window.location.reload();
+      }
+    } catch {
+      toast.error(t("toasts.invalidVerificationCode"));
+    } finally {
+      setIsSendingOtp(false);
     }
   };
 
@@ -373,10 +448,10 @@ export function SettingsContent() {
       />
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold font-heading">{t("settings.title")}</h2>
-        <p className="text-muted-foreground mt-1">
-          {t("settings.subtitle")}
-        </p>
+        <h2 className="text-3xl font-bold font-heading">
+          {t("settings.title")}
+        </h2>
+        <p className="text-muted-foreground mt-1">{t("settings.subtitle")}</p>
       </div>
 
       {/* Tab Bar */}
@@ -416,7 +491,9 @@ export function SettingsContent() {
           <div className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{t("settings.profileInformation")}</CardTitle>
+                <CardTitle className="text-base">
+                  {t("settings.profileInformation")}
+                </CardTitle>
                 <CardDescription>
                   {t("settings.profileSubtitle")}
                 </CardDescription>
@@ -475,7 +552,8 @@ export function SettingsContent() {
                         size="sm"
                         onClick={() => router.push("/checkout")}
                       >
-                        <Zap className="mr-2 h-3.5 w-3.5" /> {t("settings.upgrade")}
+                        <Zap className="mr-2 h-3.5 w-3.5" />{" "}
+                        {t("settings.upgrade")}
                       </Button>
                     )}
                   </div>
@@ -485,7 +563,9 @@ export function SettingsContent() {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{t("settings.preferences")}</CardTitle>
+                <CardTitle className="text-base">
+                  {t("settings.preferences")}
+                </CardTitle>
                 <CardDescription>
                   {t("settings.preferencesSubtitle")}
                 </CardDescription>
@@ -566,7 +646,9 @@ export function SettingsContent() {
 
                 <div className="flex items-center justify-between py-2 border-t border-border">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">{t("settings.timezone")}</Label>
+                    <Label className="text-sm font-medium">
+                      {t("settings.timezone")}
+                    </Label>
                     <p className="text-xs text-muted-foreground mr-6">
                       {t("settings.timezoneSubtitle")}
                     </p>
@@ -602,7 +684,9 @@ export function SettingsContent() {
 
                 <div className="flex items-center justify-between py-2 border-t border-border">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">{t("settings.dateFormat")}</Label>
+                    <Label className="text-sm font-medium">
+                      {t("settings.dateFormat")}
+                    </Label>
                     <p className="text-xs text-muted-foreground mr-6">
                       {t("settings.dateFormatSubtitle")}
                     </p>
@@ -625,7 +709,9 @@ export function SettingsContent() {
 
                 <div className="flex items-center justify-between py-2 border-t border-border">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">{t("settings.language.title")}</Label>
+                    <Label className="text-sm font-medium">
+                      {t("settings.language.title")}
+                    </Label>
                     <p className="text-xs text-muted-foreground mr-6">
                       {t("settings.language.description")}
                     </p>
@@ -699,7 +785,9 @@ export function SettingsContent() {
               <CardContent>
                 <div className="flex items-center justify-between py-2">
                   <div>
-                    <p className="text-sm font-medium">{t("settings.password")}</p>
+                    <p className="text-sm font-medium">
+                      {t("settings.password")}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {t("settings.passwordSubtitle")}
                     </p>
@@ -714,6 +802,76 @@ export function SettingsContent() {
                 </div>
               </CardContent>
             </Card>
+
+            {session?.user && !session.user.emailVerified && (
+              <Card className="border-amber-500/20 bg-amber-500/5">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2 text-amber-700 dark:text-amber-500">
+                    <MailCheck className="h-4 w-4" />
+                    {t("settings.emailVerificationTitle")}
+                  </CardTitle>
+                  <CardDescription className="text-amber-600/80 dark:text-amber-400/80">
+                    {t("settings.emailVerificationDesc")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {showOTP ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        value={otp}
+                        onChange={(e) =>
+                          setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        placeholder={t("emailVerification.codePlaceholder")}
+                        maxLength={6}
+                        className="w-32 h-9 text-center font-mono text-sm tracking-widest border-amber-500/50 bg-background"
+                        onKeyDown={(e) =>
+                          e.key === "Enter" && handleVerifyOtp()
+                        }
+                        disabled={isSendingOtp}
+                      />
+                      <Button
+                        size="sm"
+                        className="h-9 gap-1.5 bg-amber-500 hover:bg-amber-600 text-white"
+                        onClick={handleVerifyOtp}
+                        disabled={isSendingOtp || otp.length < 6}
+                      >
+                        {isSendingOtp ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                        )}
+                        {t("emailVerification.verify")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-9 text-xs text-muted-foreground gap-1"
+                        onClick={handleSendVerificationCode}
+                        disabled={isSendingOtp || cooldown > 0}
+                      >
+                        <RefreshCw className="h-3 w-3" />
+                        {t("emailVerification.resend")}{" "}
+                        {cooldown > 0 && `(${cooldown}s)`}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="text-white"
+                      onClick={handleSendVerificationCode}
+                      disabled={isSendingOtp || cooldown > 0}
+                    >
+                      {isSendingOtp && (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      )}
+                      {t("settings.sendVerificationCode")}{" "}
+                      {cooldown > 0 && !isSendingOtp && `(${cooldown}s)`}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
@@ -723,7 +881,9 @@ export function SettingsContent() {
             {/* Current Plan Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{t("settings.currentPlan")}</CardTitle>
+                <CardTitle className="text-base">
+                  {t("settings.currentPlan")}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -771,9 +931,10 @@ export function SettingsContent() {
                     </Button>
                   ) : (
                     <Button size="sm" onClick={() => router.push("/checkout")}>
-                      <Zap className="mr-2 h-3.5 w-3.5" /> {t("settings.upgradeButton")}
+                      <Zap className="mr-2 h-3.5 w-3.5" />{" "}
+                      {t("settings.upgradeButton")}
                     </Button>
-                )}
+                  )}
                 </div>
 
                 {isPro && (
@@ -789,11 +950,11 @@ export function SettingsContent() {
             {/* Usage Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">{t("settings.usageThisMonth")}</CardTitle>
+                <CardTitle className="text-base">
+                  {t("settings.usageThisMonth")}
+                </CardTitle>
                 <CardDescription>
-                  {isPro
-                    ? t("settings.proActive")
-                    : t("settings.freeUsage")}
+                  {isPro ? t("settings.proActive") : t("settings.freeUsage")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-5">
@@ -864,7 +1025,8 @@ export function SettingsContent() {
                     className="w-full mt-5"
                     onClick={() => router.push("/checkout")}
                   >
-                    <Zap className="mr-2 h-4 w-4" /> {t("settings.upgradeProButton")}
+                    <Zap className="mr-2 h-4 w-4" />{" "}
+                    {t("settings.upgradeProButton")}
                   </Button>
                 </CardContent>
               </Card>
@@ -891,7 +1053,8 @@ export function SettingsContent() {
                     </p>
                   </div>
                   <Button onClick={() => router.push("/checkout")}>
-                    <Zap className="mr-2 h-4 w-4" /> {t("settings.upgradeButton")}
+                    <Zap className="mr-2 h-4 w-4" />{" "}
+                    {t("settings.upgradeButton")}
                   </Button>
                 </CardContent>
               </Card>
@@ -908,7 +1071,9 @@ export function SettingsContent() {
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">{t("settings.brandLogo")}</label>
+                      <label className="text-sm font-medium">
+                        {t("settings.brandLogo")}
+                      </label>
                       <div className="flex items-center gap-4">
                         <div className="h-16 w-16 bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
                           {brandLogoUrl ? (
@@ -940,7 +1105,9 @@ export function SettingsContent() {
                               {isUploadingLogo && (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               )}
-                              {isUploadingLogo ? t("settings.uploadingLogo") : t("settings.uploadLogo")}
+                              {isUploadingLogo
+                                ? t("settings.uploadingLogo")
+                                : t("settings.uploadLogo")}
                             </Button>
                             {brandLogoUrl && (
                               <Button
@@ -961,8 +1128,12 @@ export function SettingsContent() {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">{t("settings.brandColor")}</label>
-                      <p className="text-xs text-muted-foreground">{t("settings.brandColorDesc")}</p>
+                      <label className="text-sm font-medium">
+                        {t("settings.brandColor")}
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        {t("settings.brandColorDesc")}
+                      </p>
                       <div className="flex items-center gap-3">
                         <input
                           type="color"
@@ -982,7 +1153,9 @@ export function SettingsContent() {
                       <label className="text-sm font-medium">
                         {t("settings.invoicePrefix")}
                       </label>
-                      <p className="text-xs text-muted-foreground">{t("settings.invoicePrefixDesc")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("settings.invoicePrefixDesc")}
+                      </p>
                       <input
                         type="text"
                         value={invoicePrefix}
@@ -1010,7 +1183,9 @@ export function SettingsContent() {
                       {isSavingBrand && (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       )}
-                      {isSavingBrand ? t("settings.saving") : t("settings.saveBranding")}
+                      {isSavingBrand
+                        ? t("settings.saving")
+                        : t("settings.saveBranding")}
                     </Button>
                   </CardContent>
                 </Card>
