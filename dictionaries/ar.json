@@ -19,7 +19,9 @@
     "error": "حدث خطأ ما",
     "retry": "حاول مجدداً",
     "logOut": "تسجيل الخروج",
-    "loggingOut": "جارٍ تسجيل الخروج..."
+    "loggingOut": "جارٍ تسجيل الخروج...",
+    "dismiss": "إغلاق",
+    "sending": "جارٍ الإرسال…"
   },
   "nav": {
     "features": "المميزات",
@@ -391,7 +393,10 @@
     "saveBranding": "حفظ العلامة التجارية",
     "saving": "جارٍ الحفظ...",
     "proOnlyBranding": "العلامة التجارية المخصصة ميزة Pro.",
-    "unlockBranding": "قم بالترقية إلى Pro لتخصيص علامتك التجارية على الفواتير."
+    "unlockBranding": "قم بالترقية إلى Pro لتخصيص علامتك التجارية على الفواتير.",
+    "emailVerificationTitle": "التحقق من البريد الإلكتروني",
+    "emailVerificationDesc": "لم يتم التحقق من بريدك الإلكتروني بعد.",
+    "sendVerificationCode": "إرسال رمز التحقق"
   },
   "profile": {
     "title": "الملف الشخصي",
@@ -610,7 +615,11 @@
     "couldNotOpenBillingPortal": "تعذّر فتح بوابة الفوترة",
     "somethingWentWrong": "حدث خطأ ما",
     "photoUploadFailed": "فشل رفع الصورة",
-    "imageTooLarge": "الصورة كبيرة جداً. يرجى استخدام ملف أقل من 5 ميغابايت."
+    "imageTooLarge": "الصورة كبيرة جداً. يرجى استخدام ملف أقل من 5 ميغابايت.",
+    "verificationSent": "تم إرسال رمز التحقق! تحقق من بريدك الوارد.",
+    "verificationSentFail": "فشل إرسال الرمز. يرجى المحاولة مجدداً.",
+    "emailVerified": "تم التحقق من البريد الإلكتروني! تم فتح الوصول الكامل الآن.",
+    "invalidVerificationCode": "الرمز غير صحيح أو منتهي الصلاحية. حاول إرساله مجدداً."
   },
   "landing": {
     "hero": {
@@ -700,5 +709,15 @@
       "labelProjects": "المشاريع الأخيرة",
       "labelNav": "التنقل السريع"
     }
+  },
+  "emailVerification": {
+    "bannerMessage": "يرجى التحقق من بريدك الإلكتروني لفتح جميع المميزات.",
+    "enterCode": "أدخل رمز التحقق",
+    "codePlaceholder": "رمز مكون من 6 أرقام",
+    "verify": "تحقق",
+    "resend": "إعادة الإرسال",
+    "successTitle": "تم التحقق من البريد الإلكتروني!",
+    "successMessage": "شكراً لتحقيقك من بريدك الإلكتروني. تم فتح الوصول الكامل الآن.",
+    "successDismiss": "حسناً"
   }
 }

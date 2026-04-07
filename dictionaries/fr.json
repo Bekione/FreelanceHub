@@ -19,7 +19,9 @@
     "error": "Une erreur s'est produite",
     "retry": "Réessayer",
     "logOut": "Se déconnecter",
-    "loggingOut": "Déconnexion..."
+    "loggingOut": "Déconnexion...",
+    "dismiss": "Fermer",
+    "sending": "Envoi…"
   },
   "nav": {
     "features": "Fonctionnalités",
@@ -391,7 +393,10 @@
     "saveBranding": "Enregistrer l'image de marque",
     "saving": "Enregistrement...",
     "proOnlyBranding": "L'image de marque personnalisée est une fonctionnalité Pro.",
-    "unlockBranding": "Passez à Pro pour personnaliser l'image de marque de vos factures."
+    "unlockBranding": "Passez à Pro pour personnaliser l'image de marque de vos factures.",
+    "emailVerificationTitle": "Vérification de l'e-mail",
+    "emailVerificationDesc": "Votre adresse e-mail n'a pas encore été vérifiée.",
+    "sendVerificationCode": "Envoyer le code de vérification"
   },
   "profile": {
     "title": "Profil",
@@ -610,7 +615,11 @@
     "couldNotOpenBillingPortal": "Impossible d'ouvrir le portail de facturation",
     "somethingWentWrong": "Une erreur s'est produite",
     "photoUploadFailed": "Échec du téléchargement de la photo",
-    "imageTooLarge": "L'image est trop grande. Veuillez utiliser un fichier de moins de 5 Mo."
+    "imageTooLarge": "L'image est trop grande. Veuillez utiliser un fichier de moins de 5 Mo.",
+    "verificationSent": "Code de vérification envoyé ! Vérifiez votre boîte de réception.",
+    "verificationSentFail": "Échec de l'envoi du code. Veuillez réessayer.",
+    "emailVerified": "E-mail vérifié ! L'accès complet est maintenant débloqué.",
+    "invalidVerificationCode": "Code invalide ou expiré. Essayez de le renvoyer."
   },
   "landing": {
     "hero": {
@@ -700,5 +709,15 @@
       "labelProjects": "Projets récents",
       "labelNav": "Navigation rapide"
     }
+  },
+  "emailVerification": {
+    "bannerMessage": "Veuillez vérifier votre adresse e-mail pour débloquer toutes les fonctionnalités.",
+    "enterCode": "Entrer le code de vérification",
+    "codePlaceholder": "Code à 6 chiffres",
+    "verify": "Vérifier",
+    "resend": "Renvoyer",
+    "successTitle": "E-mail vérifié !",
+    "successMessage": "Merci d'avoir vérifié votre e-mail. L'accès complet est maintenant débloqué.",
+    "successDismiss": "Compris"
   }
 }

@@ -19,7 +19,9 @@
     "error": "Etwas ist schiefgelaufen",
     "retry": "Erneut versuchen",
     "logOut": "Abmelden",
-    "loggingOut": "Abmelden..."
+    "loggingOut": "Abmelden...",
+    "dismiss": "Schließen",
+    "sending": "Wird gesendet…"
   },
   "nav": {
     "features": "Funktionen",
@@ -391,7 +393,10 @@
     "saveBranding": "Branding speichern",
     "saving": "Wird gespeichert...",
     "proOnlyBranding": "Individuelles Branding ist eine Pro-Funktion.",
-    "unlockBranding": "Upgraden Sie auf Pro, um Ihr Rechnungs-Branding anzupassen."
+    "unlockBranding": "Upgraden Sie auf Pro, um Ihr Rechnungs-Branding anzupassen.",
+    "emailVerificationTitle": "E-Mail-Bestätigung",
+    "emailVerificationDesc": "Ihre E-Mail-Adresse wurde noch nicht bestätigt.",
+    "sendVerificationCode": "Bestätigungscode senden"
   },
   "profile": {
     "title": "Profil",
@@ -610,7 +615,11 @@
     "couldNotOpenBillingPortal": "Abrechnungsportal konnte nicht geöffnet werden",
     "somethingWentWrong": "Etwas ist schiefgelaufen",
     "photoUploadFailed": "Foto-Upload fehlgeschlagen",
-    "imageTooLarge": "Das Bild ist zu groß. Bitte verwenden Sie eine Datei unter 5 MB."
+    "imageTooLarge": "Das Bild ist zu groß. Bitte verwenden Sie eine Datei unter 5 MB.",
+    "verificationSent": "Bestätigungscode gesendet! Überprüfen Sie Ihren Posteingang.",
+    "verificationSentFail": "Code konnte nicht gesendet werden. Bitte versuchen Sie es erneut.",
+    "emailVerified": "E-Mail bestätigt! Voller Zugang ist jetzt freigeschaltet.",
+    "invalidVerificationCode": "Ungültiger oder abgelaufener Code. Versuchen Sie, ihn erneut zu senden."
   },
   "landing": {
     "hero": {
@@ -700,5 +709,15 @@
       "labelProjects": "Aktuelle Projekte",
       "labelNav": "Schnellnavigation"
     }
+  },
+  "emailVerification": {
+    "bannerMessage": "Bitte bestätigen Sie Ihre E-Mail-Adresse, um alle Funktionen freizuschalten.",
+    "enterCode": "Bestätigungscode eingeben",
+    "codePlaceholder": "6-stelliger Code",
+    "verify": "Bestätigen",
+    "resend": "Erneut senden",
+    "successTitle": "E-Mail bestätigt!",
+    "successMessage": "Danke für die Bestätigung Ihrer E-Mail. Voller Zugang ist jetzt freigeschaltet.",
+    "successDismiss": "Verstanden"
   }
 }

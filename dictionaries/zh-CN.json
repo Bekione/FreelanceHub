@@ -19,7 +19,9 @@
     "error": "出现错误",
     "retry": "重试",
     "logOut": "退出登录",
-    "loggingOut": "正在退出..."
+    "loggingOut": "正在退出...",
+    "dismiss": "关闭",
+    "sending": "发送中…"
   },
   "nav": {
     "features": "功能",
@@ -391,7 +393,10 @@
     "saveBranding": "保存品牌设置",
     "saving": "保存中...",
     "proOnlyBranding": "自定义品牌是 Pro 功能。",
-    "unlockBranding": "升级至 Pro 以自定义发票品牌。"
+    "unlockBranding": "升级至 Pro 以自定义发票品牌。",
+    "emailVerificationTitle": "邮箱验证",
+    "emailVerificationDesc": "您的电子邮件地址尚未验证。",
+    "sendVerificationCode": "发送验证码"
   },
   "profile": {
     "title": "个人资料",
@@ -610,7 +615,11 @@
     "couldNotOpenBillingPortal": "无法打开账单门户",
     "somethingWentWrong": "出现错误",
     "photoUploadFailed": "照片上传失败",
-    "imageTooLarge": "图片太大，请使用 5MB 以下的文件。"
+    "imageTooLarge": "图片太大，请使用 5MB 以下的文件。",
+    "verificationSent": "验证码已发送！请查看您的收件箱。",
+    "verificationSentFail": "发送失败，请重试。",
+    "emailVerified": "邮箱已验证！所有功能现已全面解锁。",
+    "invalidVerificationCode": "验证码无效或已过期，请尝试重新发送。"
   },
   "landing": {
     "hero": {
@@ -700,5 +709,15 @@
       "labelProjects": "最近项目",
       "labelNav": "快速导航"
     }
+  },
+  "emailVerification": {
+    "bannerMessage": "请验证您的电子邮件地址以解锁所有功能。",
+    "enterCode": "输入验证码",
+    "codePlaceholder": "6位验证码",
+    "verify": "验证",
+    "resend": "重新发送",
+    "successTitle": "邮箱已验证！",
+    "successMessage": "感谢您验证邮箱。所有功能现已全面解锁。",
+    "successDismiss": "知道了"
   }
 }

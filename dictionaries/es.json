@@ -19,7 +19,9 @@
     "error": "Algo salió mal",
     "retry": "Intentar de nuevo",
     "logOut": "Cerrar sesión",
-    "loggingOut": "Cerrando sesión..."
+    "loggingOut": "Cerrando sesión...",
+    "dismiss": "Cerrar",
+    "sending": "Enviando…"
   },
   "nav": {
     "features": "Funciones",
@@ -134,7 +136,8 @@
     "noClient": "Sin cliente",
     "noDeadline": "Sin fecha límite",
     "noDescription": "Sin descripción.",
-    "via": "Vía",    "status": {
+    "via": "Vía",
+    "status": {
       "PENDING": "Pendiente",
       "ACTIVE": "Activo",
       "COMPLETED": "Completado",
@@ -390,7 +393,10 @@
     "saveBranding": "Guardar marca",
     "saving": "Guardando...",
     "proOnlyBranding": "La marca personalizada es una función Pro.",
-    "unlockBranding": "Actualiza a Pro para personalizar la marca de tus facturas."
+    "unlockBranding": "Actualiza a Pro para personalizar la marca de tus facturas.",
+    "emailVerificationTitle": "Verificación de correo",
+    "emailVerificationDesc": "Tu dirección de correo aún no ha sido verificada.",
+    "sendVerificationCode": "Enviar código de verificación"
   },
   "profile": {
     "title": "Perfil",
@@ -609,7 +615,11 @@
     "couldNotOpenBillingPortal": "No se pudo abrir el portal de facturación",
     "somethingWentWrong": "Algo salió mal",
     "photoUploadFailed": "Error al subir la foto",
-    "imageTooLarge": "La imagen es demasiado grande. Por favor usa un archivo de menos de 5 MB."
+    "imageTooLarge": "La imagen es demasiado grande. Por favor usa un archivo de menos de 5 MB.",
+    "verificationSent": "¡Código enviado! Revisa tu bandeja de entrada.",
+    "verificationSentFail": "Error al enviar el código. Inténtalo de nuevo.",
+    "emailVerified": "¡Correo verificado! El acceso completo está desbloqueado.",
+    "invalidVerificationCode": "Código inválido o expirado. Intenta reenviarlo."
   },
   "landing": {
     "hero": {
@@ -699,5 +709,15 @@
       "labelProjects": "Proyectos recientes",
       "labelNav": "Navegación rápida"
     }
+  },
+  "emailVerification": {
+    "bannerMessage": "Por favor, verifica tu dirección de correo electrónico para desbloquear todas las funciones.",
+    "enterCode": "Ingresar código de verificación",
+    "codePlaceholder": "Código de 6 dígitos",
+    "verify": "Verificar",
+    "resend": "Reenviar",
+    "successTitle": "¡Correo verificado!",
+    "successMessage": "Gracias por verificar tu correo. El acceso completo está desbloqueado.",
+    "successDismiss": "Entendido"
   }
 }

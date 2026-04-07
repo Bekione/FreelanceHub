@@ -19,7 +19,9 @@
     "error": "Something went wrong",
     "retry": "Try again",
     "logOut": "Log out",
-    "loggingOut": "Logging out..."
+    "loggingOut": "Logging out...",
+    "dismiss": "Dismiss",
+    "sending": "Sending…"
   },
   "nav": {
     "features": "Features",
@@ -391,7 +393,10 @@
     "saveBranding": "Save Branding",
     "saving": "Saving...",
     "proOnlyBranding": "Custom branding is a Pro feature.",
-    "unlockBranding": "Upgrade to Pro to customize your invoice branding."
+    "unlockBranding": "Upgrade to Pro to customize your invoice branding.",
+    "emailVerificationTitle": "Email Verification",
+    "emailVerificationDesc": "Your email address has not been verified yet.",
+    "sendVerificationCode": "Send Verification Code"
   },
   "profile": {
     "title": "Profile",
@@ -611,7 +616,11 @@
     "couldNotOpenBillingPortal": "Could not open billing portal",
     "somethingWentWrong": "Something went wrong",
     "photoUploadFailed": "Photo upload failed",
-    "imageTooLarge": "Image is too large. Please use a file under 5MB."
+    "imageTooLarge": "Image is too large. Please use a file under 5MB.",
+    "verificationSent": "Verification code sent! Check your inbox.",
+    "verificationSentFail": "Failed to send code. Please try again.",
+    "emailVerified": "Email verified! Full access is now unlocked.",
+    "invalidVerificationCode": "Invalid or expired code. Try resending."
   },
   "landing": {
     "hero": {
@@ -701,5 +710,15 @@
       "labelProjects": "Recent Projects",
       "labelNav": "Quick Navigation"
     }
+  },
+  "emailVerification": {
+    "bannerMessage": "Please verify your email address to unlock all features.",
+    "enterCode": "Enter verification code",
+    "codePlaceholder": "6-digit code",
+    "verify": "Verify",
+    "resend": "Resend",
+    "successTitle": "Email verified!",
+    "successMessage": "Thanks for verifying your email. Full access is now unlocked.",
+    "successDismiss": "Got it"
   }
 }
