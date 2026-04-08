@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
-  useSuspenseQuery,
+  useQuery,
+  keepPreviousData,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -67,9 +68,12 @@ import { useTranslation } from "@/lib/i18n/translation-context";
 
 const emptyForm = { name: "", email: "", company: "", phone: "", notes: "" };
 
-export function ClientsContent() {
+export function ClientsContent({
+  initialData,
+}: {
+  initialData: import("@/lib/queries/clients").ClientsResult | null;
+}) {
   const queryClient = useQueryClient();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
@@ -81,16 +85,20 @@ export function ClientsContent() {
     Number(searchParams.get("page")) || 1,
   );
 
-  const { data } = useSuspenseQuery(
-    clientsQueryOptions({ page: currentPage, limit: 9, q: debouncedSearch }),
-  );
+  const { data, isFetching } = useQuery({
+    ...clientsQueryOptions({ page: currentPage, limit: 9, q: debouncedSearch }),
+    placeholderData: keepPreviousData,
+    initialData:
+      !debouncedSearch && currentPage === 1 && initialData
+        ? initialData
+        : undefined,
+  });
   const clients = data?.data ?? [];
   const clientsMeta = data?.metadata ?? null;
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeResource, setUpgradeResource] = useState<"clients" | "portals">(
     "clients",
@@ -108,30 +116,18 @@ export function ClientsContent() {
     (session?.user as any)?.subscriptionStatus === "active" ||
     (session?.user as any)?.subscriptionStatus === "past_due";
 
-  // Sync state to URL
-  const updateUrl = useCallback(() => {
+  // Sync filters to URL without triggering server navigation
+  useEffect(() => {
     const params = new URLSearchParams();
-
-    if (debouncedSearch) {
-      params.set("q", debouncedSearch);
-    }
-
-    if (currentPage > 1) {
-      params.set("page", currentPage.toString());
-    }
-
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (currentPage > 1) params.set("page", currentPage.toString());
     const query = params.toString();
     const url = query ? `${pathname}?${query}` : pathname;
-
     const currentQuery = new URLSearchParams(window.location.search).toString();
     if (query !== currentQuery) {
-      router.push(url, { scroll: false });
+      window.history.replaceState(null, "", url);
     }
-  }, [debouncedSearch, currentPage, pathname, router]);
-
-  useEffect(() => {
-    updateUrl();
-  }, [updateUrl]);
+  }, [debouncedSearch, currentPage, pathname]);
 
   const {
     register,
@@ -212,14 +208,9 @@ export function ClientsContent() {
       } else {
         setUploadedImageUrl(data.url);
         // If editing an existing client, the upload route already persisted it to DB!
-        // We can immediately reflect it in the global state so the cards update behind the modal.
+        // Invalidate the query so the cards update behind the modal.
         if (editingClient) {
-          setClients(
-            clients.map((c) =>
-              c.id === editingClient.id ? { ...c, imageUrl: data.url } : c,
-            ),
-            clientsMeta,
-          );
+          queryClient.invalidateQueries({ queryKey: queryKeys.clients() });
         }
       }
     } finally {
@@ -320,13 +311,8 @@ export function ClientsContent() {
         return;
       }
 
-      // Update local client array state directly
-      const updatedList = clients.map((c) =>
-        c.id === client.id
-          ? { ...c, hasPortal: data.hasPortal, portalToken: data.portalToken }
-          : c,
-      );
-      setClients(updatedList, clientsMeta);
+      // Invalidate to reflect portal changes
+      await queryClient.invalidateQueries({ queryKey: queryKeys.clients() });
       toast.success(
         action === "ENABLE"
           ? t("toasts.portalGenerated")
@@ -373,9 +359,9 @@ export function ClientsContent() {
                 <span className="text-xs text-muted-foreground">
                   {totalClients} / {FREE_LIMITS.clients} {t("clients.usedOf")}
                 </span>
-                <div className="w-32 h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="w-32 h-1.5 bg-muted overflow-hidden">
                   <div
-                    className={`h-full transition-all rounded-full ${
+                    className={`h-full transition-all ${
                       atLimit ? "bg-destructive" : "bg-primary"
                     }`}
                     style={{
@@ -431,7 +417,9 @@ export function ClientsContent() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={`grid gap-6 md:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200 ${isFetching ? "opacity-60" : "opacity-100"}`}
+        >
           {clients.length > 0 ? (
             clients.map((client, index) => (
               <motion.div
@@ -770,12 +758,12 @@ export function ClientsContent() {
                 <Button
                   type="submit"
                   disabled={
-                    isSubmitting ||
+                    saveMutation.isPending ||
                     isUploadingPhoto ||
                     (!isDirty && !photoChanged)
                   }
                 >
-                  {isSubmitting && (
+                  {saveMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   {editingClient

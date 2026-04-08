@@ -1,6 +1,6 @@
 "use client";
 
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { DollarSign, FolderOpen, FileText, Users, Clock } from "lucide-react";
 import {
@@ -37,11 +37,18 @@ function getStatusLabel(status: string, t: (key: string) => string): string {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
-export function DashboardContent() {
-  // useSuspenseQuery — data is guaranteed to be available (prefetched on server)
-  // Component will suspend until data is ready, no need for loading checks
-  const { data: metrics } = useSuspenseQuery(metricsQueryOptions());
+export function DashboardContent({
+  initialMetrics,
+}: {
+  initialMetrics: import("@/lib/types").DashboardMetrics | null;
+}) {
+  const { data: metrics } = useQuery({
+    ...metricsQueryOptions(),
+    initialData: initialMetrics ?? undefined,
+  });
   const t = useTranslation();
+
+  if (!metrics) return null; // Suspense fallback handles this via DashboardSkeleton
 
   const statCards = [
     {

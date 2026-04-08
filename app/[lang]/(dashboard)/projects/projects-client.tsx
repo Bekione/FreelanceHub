@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
-  useSuspenseQuery,
   useQuery,
+  keepPreviousData,
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Plus,
@@ -143,9 +143,12 @@ const emptyForm = {
   attachmentsUpdated: "",
 };
 
-export function ProjectsContent() {
+export function ProjectsContent({
+  initialData,
+}: {
+  initialData: import("@/lib/queries/projects").ProjectsResult | null;
+}) {
   const queryClient = useQueryClient();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
@@ -160,14 +163,22 @@ export function ProjectsContent() {
     Number(searchParams.get("page")) || 1,
   );
 
-  const { data: projectsData } = useSuspenseQuery(
-    projectsQueryOptions({
+  const { data: projectsData, isFetching } = useQuery({
+    ...projectsQueryOptions({
       page: currentPage,
       limit: 9,
       q: debouncedSearch,
       status: statusFilter,
     }),
-  );
+    placeholderData: keepPreviousData,
+    initialData:
+      !debouncedSearch &&
+      currentPage === 1 &&
+      statusFilter === "all" &&
+      initialData
+        ? initialData
+        : undefined,
+  });
   const projects = projectsData?.data ?? [];
   const projectsMeta = projectsData?.metadata ?? null;
 
@@ -180,35 +191,20 @@ export function ProjectsContent() {
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
   const [autoPref, setAutoPref] = useState(false);
 
-  // Sync state to URL
-  const updateUrl = useCallback(() => {
+  // Sync filters to URL without triggering server navigation
+  useEffect(() => {
     const params = new URLSearchParams();
-
-    if (debouncedSearch) {
-      params.set("q", debouncedSearch);
-    }
-
-    if (statusFilter && statusFilter !== "all") {
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (statusFilter && statusFilter !== "all")
       params.set("status", statusFilter);
-    }
-
-    if (currentPage > 1) {
-      params.set("page", currentPage.toString());
-    }
-
+    if (currentPage > 1) params.set("page", currentPage.toString());
     const query = params.toString();
     const url = query ? `${pathname}?${query}` : pathname;
-
-    // Only fetch if url actually changed to prevent loop
     const currentQuery = new URLSearchParams(window.location.search).toString();
     if (query !== currentQuery) {
-      router.push(url, { scroll: false });
+      window.history.replaceState(null, "", url);
     }
-  }, [debouncedSearch, statusFilter, currentPage, pathname, router]);
-
-  useEffect(() => {
-    updateUrl();
-  }, [updateUrl]);
+  }, [debouncedSearch, statusFilter, currentPage, pathname]);
 
   useEffect(() => {
     fetch("/api/settings/profile")
@@ -478,7 +474,9 @@ export function ProjectsContent() {
           </Select>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={`grid gap-6 md:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200 ${isFetching ? "opacity-60" : "opacity-100"}`}
+        >
           {projects.length > 0 ? (
             projects.map((project, index) => (
               <motion.div
@@ -874,8 +872,11 @@ export function ProjectsContent() {
                 >
                   {t("common.cancel")}
                 </Button>
-                <Button type="submit" disabled={isSubmitting || !isDirty}>
-                  {isSubmitting && (
+                <Button
+                  type="submit"
+                  disabled={saveMutation.isPending || !isDirty}
+                >
+                  {saveMutation.isPending && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   {editingProject
