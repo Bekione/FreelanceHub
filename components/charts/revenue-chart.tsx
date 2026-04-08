@@ -14,7 +14,8 @@ import {
   Filler,
 } from "chart.js";
 import { useTheme } from "@/components/theme-provider";
-import { useDataStore } from "@/store/data-store";
+import { useQuery } from "@tanstack/react-query";
+import { invoicesQueryOptions } from "@/lib/queries/invoices";
 
 ChartJS.register(
   CategoryScale,
@@ -99,7 +100,8 @@ function getLast6Months() {
 export default function RevenueChart() {
   const { theme } = useTheme();
   const chartRef = useRef<ChartJS<"line"> | null>(null);
-  const invoices = useDataStore((s) => s.invoices);
+  const { data: invoicesData } = useQuery(invoicesQueryOptions({ limit: 500 }));
+  const invoices = invoicesData?.data ?? [];
 
   // Compute monthly revenue from PAID invoices grouped by issue date
   const { labels, dataPoints } = useMemo(() => {
