@@ -1,13 +1,9 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { getQueryClient } from "@/lib/get-query-client";
-import { metricsQueryOptions } from "@/lib/queries/dashboard";
-import { invoicesQueryOptions } from "@/lib/queries/invoices";
 import { getMetrics } from "@/lib/server/dashboard";
-import { getInvoices } from "@/lib/server/invoices";
 import { DashboardContent } from "./dashboard-client";
 import { DashboardSkeleton } from "./dashboard-skeleton";
+import type { DashboardMetrics } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Dashboard | FreelanceHub",
@@ -16,27 +12,16 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const queryClient = getQueryClient();
-
-  // Prefetch directly from DB on the server — no HTTP round-trip
-  // try/catch: if session unavailable during SSR, client will fetch via Server Action
-  await Promise.all([
-    queryClient
-      .prefetchQuery({ ...metricsQueryOptions(), queryFn: getMetrics })
-      .catch(() => {}),
-    queryClient
-      .prefetchQuery({
-        ...invoicesQueryOptions(),
-        queryFn: () => getInvoices({}),
-      })
-      .catch(() => {}),
-  ]);
+  let initialMetrics: DashboardMetrics | null = null;
+  try {
+    initialMetrics = await getMetrics();
+  } catch {
+    // Degraded gracefully — client will fetch via /api/metrics
+  }
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <Suspense fallback={<DashboardSkeleton />}>
-        <DashboardContent />
-      </Suspense>
-    </HydrationBoundary>
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardContent initialMetrics={initialMetrics} />
+    </Suspense>
   );
 }

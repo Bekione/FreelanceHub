@@ -1,11 +1,9 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { getQueryClient } from "@/lib/get-query-client";
-import { projectsQueryOptions } from "@/lib/queries/projects";
 import { getProjects } from "@/lib/server/projects";
 import { ProjectsContent } from "./projects-client";
 import { ProjectsSkeleton } from "./projects-skeleton";
+import type { ProjectsResult } from "@/lib/queries/projects";
 
 export const metadata: Metadata = {
   title: "Projects | FreelanceHub",
@@ -14,20 +12,16 @@ export const metadata: Metadata = {
 };
 
 export default async function ProjectsPage() {
-  const queryClient = getQueryClient();
-
-  await queryClient
-    .prefetchQuery({
-      ...projectsQueryOptions(),
-      queryFn: () => getProjects({}),
-    })
-    .catch(() => {});
+  let initialData: ProjectsResult | null = null;
+  try {
+    initialData = (await getProjects({})) as unknown as ProjectsResult;
+  } catch {
+    // Client will fetch via /api/projects
+  }
 
   return (
-    <HydrationBoundary state={dehydrate(queryClient)}>
-      <Suspense fallback={<ProjectsSkeleton />}>
-        <ProjectsContent />
-      </Suspense>
-    </HydrationBoundary>
+    <Suspense fallback={<ProjectsSkeleton />}>
+      <ProjectsContent initialData={initialData} />
+    </Suspense>
   );
 }
