@@ -103,10 +103,10 @@ function UsageBar({
         </span>
       </div>
       {limit !== Infinity && (
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div className="h-2 bg-muted overflow-hidden">
           <div
             className={cn(
-              "h-full rounded-full transition-all duration-500",
+              "h-full transition-all duration-500",
               atLimit
                 ? "bg-destructive"
                 : nearLimit
