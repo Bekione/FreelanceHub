@@ -26,7 +26,7 @@ export default function Hero({ dict, lang }: HeroProps) {
   ];
 
   return (
-    <section className="relative overflow-hidden pt-32 pb-20">
+    <section className="relative overflow-hidden pt-26 sm:pt-32 pb-20">
       <div
         className="absolute inset-x-0 top-0 h-[115svh] pointer-events-none"
         style={{
@@ -83,13 +83,13 @@ export default function Hero({ dict, lang }: HeroProps) {
         >
           <a
             href="#pricing"
-            className="px-8 py-3.5 rounded-lg bg-primary text-primary-foreground font-semibold hover:brightness-110 transition-all shadow-lg shadow-primary/20"
+            className="inline-block w-full sm:w-fit text-center px-8 py-3.5 rounded-lg bg-primary text-primary-foreground font-semibold hover:brightness-110 transition-all shadow-lg shadow-primary/20"
           >
             {t("landing.hero.ctaPrimary")}
           </a>
           <a
             href="#dashboard-preview"
-            className="px-8 py-3.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-md font-semibold text-foreground/90 hover:bg-white/10 transition-all shadow-sm"
+            className="inline-block w-full sm:w-fit text-center px-8 py-3.5 rounded-lg bg-white/5 border border-white/10 backdrop-blur-md font-semibold text-foreground/90 hover:bg-white/10 transition-all shadow-sm"
           >
             {t("landing.hero.ctaSecondary")}
           </a>
@@ -126,7 +126,7 @@ export default function Hero({ dict, lang }: HeroProps) {
 
         <motion.div
           {...fadeUp(0.7)}
-          className="mt-20 flex justify-center items-center gap-12 opacity-40"
+          className="mt-20 flex flex-wrap justify-center items-center gap-12 opacity-40"
         >
           {["Stripe", "Notion", "Slack", "Figma", "GitHub"].map((name) => (
             <span

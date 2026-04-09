@@ -72,9 +72,9 @@ export function MarketingLanguageSwitcher({
           role="listbox"
           aria-label="Language options"
           className={cn(
-            "absolute z-50 min-w-[180px] bg-card/90 backdrop-blur-xl border border-foreground/10 shadow-xl py-1 rounded-xl overflow-hidden",
+            "absolute z-50 min-w-[180px] bg-white/5 backdrop-blur-sm border border-foreground/10 shadow-xl py-1 rounded-xl overflow-hidden",
             dropUp ? "bottom-full mb-2" : "top-full mt-2",
-            origin === 'left' ? "start-0" : "end-0"
+            origin === 'left' ? "inset-s-0" : "inset-e-0"
           )}
         >
           {locales.map((locale) => {

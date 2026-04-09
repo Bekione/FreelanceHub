@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { AppLogo } from "@/components/app-logo";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { MarketingLanguageSwitcher } from "@/components/i18n/marketing-language-switcher";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/getDictionary";
