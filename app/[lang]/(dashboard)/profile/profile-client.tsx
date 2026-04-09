@@ -262,7 +262,7 @@ export function ProfileContent() {
     setIsSettingPassword(true);
     try {
       // better-auth built-in /set-password endpoint — creates credential account for OAuth users
-      const res = await fetch("/api/set-password", {
+      const res = await fetch("/api/auth/set-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ newPassword: passwordData.newPassword }),
