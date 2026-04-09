@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardInsights } from "@/components/dashboard/dashboard-insights";
 import { useTranslation } from "@/lib/i18n/translation-context";
 import { metricsQueryOptions } from "@/lib/queries/dashboard";
+import { DashboardSkeleton } from "./dashboard-skeleton";
 
 function statusVariant(status: string) {
   switch (status) {
@@ -37,18 +38,11 @@ function getStatusLabel(status: string, t: (key: string) => string): string {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
-export function DashboardContent({
-  initialMetrics,
-}: {
-  initialMetrics: import("@/lib/types").DashboardMetrics | null;
-}) {
-  const { data: metrics } = useQuery({
-    ...metricsQueryOptions(),
-    initialData: initialMetrics ?? undefined,
-  });
+export function DashboardContent() {
+  const { data: metrics, isLoading } = useQuery(metricsQueryOptions());
   const t = useTranslation();
 
-  if (!metrics) return null; // Suspense fallback handles this via DashboardSkeleton
+  if (isLoading || !metrics) return <DashboardSkeleton />;
 
   const statCards = [
     {

@@ -7,6 +7,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { ProjectsSkeleton } from "./projects-skeleton";
 import { useForm } from "react-hook-form";
 import { useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -143,11 +144,7 @@ const emptyForm = {
   attachmentsUpdated: "",
 };
 
-export function ProjectsContent({
-  initialData,
-}: {
-  initialData: import("@/lib/queries/projects").ProjectsResult | null;
-}) {
+export function ProjectsContent() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -163,7 +160,11 @@ export function ProjectsContent({
     Number(searchParams.get("page")) || 1,
   );
 
-  const { data: projectsData, isFetching } = useQuery({
+  const {
+    data: projectsData,
+    isFetching,
+    isLoading,
+  } = useQuery({
     ...projectsQueryOptions({
       page: currentPage,
       limit: 9,
@@ -171,13 +172,6 @@ export function ProjectsContent({
       status: statusFilter,
     }),
     placeholderData: keepPreviousData,
-    initialData:
-      !debouncedSearch &&
-      currentPage === 1 &&
-      statusFilter === "all" &&
-      initialData
-        ? initialData
-        : undefined,
   });
   const projects = projectsData?.data ?? [];
   const projectsMeta = projectsData?.metadata ?? null;
@@ -382,6 +376,8 @@ export function ProjectsContent({
 
   const totalProjects = projectsMeta?.totalItems ?? projects.length;
   const atLimit = totalProjects >= FREE_LIMITS.projects;
+
+  if (isLoading) return <ProjectsSkeleton />;
 
   return (
     <>

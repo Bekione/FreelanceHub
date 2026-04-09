@@ -7,6 +7,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { InvoicesSkeleton } from "./invoices-skeleton";
 import { useForm } from "react-hook-form";
 import { useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -104,11 +105,7 @@ const emptyForm = {
   status: "DRAFT" as Invoice["status"],
 };
 
-export function InvoicesContent({
-  initialData,
-}: {
-  initialData: import("@/lib/queries/invoices").InvoicesResult | null;
-}) {
+export function InvoicesContent() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -124,7 +121,11 @@ export function InvoicesContent({
     Number(searchParams.get("page")) || 1,
   );
 
-  const { data: invoicesData, isFetching } = useQuery({
+  const {
+    data: invoicesData,
+    isFetching,
+    isLoading,
+  } = useQuery({
     ...invoicesQueryOptions({
       page: currentPage,
       limit: 10,
@@ -132,13 +133,6 @@ export function InvoicesContent({
       status: statusFilter,
     }),
     placeholderData: keepPreviousData,
-    initialData:
-      !debouncedSearch &&
-      currentPage === 1 &&
-      statusFilter === "all" &&
-      initialData
-        ? initialData
-        : undefined,
   });
   const invoices = invoicesData?.data ?? [];
   const invoicesMeta = invoicesData?.metadata ?? null;
@@ -359,6 +353,8 @@ export function InvoicesContent({
   const pendingAmount = metricsData?.pendingInvoicesAmount || 0;
   const totalInvoices = invoicesMeta?.totalItems ?? invoices.length;
   const atLimit = totalInvoices >= FREE_LIMITS.invoicesPerMonth;
+
+  if (isLoading) return <InvoicesSkeleton />;
 
   return (
     <>

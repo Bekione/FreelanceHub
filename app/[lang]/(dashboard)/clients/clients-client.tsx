@@ -7,6 +7,7 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
+import { ClientsSkeleton } from "./clients-skeleton";
 import { useForm } from "react-hook-form";
 import { useSearchParams, usePathname } from "next/navigation";
 import { motion } from "framer-motion";
@@ -68,11 +69,7 @@ import { useTranslation } from "@/lib/i18n/translation-context";
 
 const emptyForm = { name: "", email: "", company: "", phone: "", notes: "" };
 
-export function ClientsContent({
-  initialData,
-}: {
-  initialData: import("@/lib/queries/clients").ClientsResult | null;
-}) {
+export function ClientsContent() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -85,13 +82,9 @@ export function ClientsContent({
     Number(searchParams.get("page")) || 1,
   );
 
-  const { data, isFetching } = useQuery({
+  const { data, isFetching, isLoading } = useQuery({
     ...clientsQueryOptions({ page: currentPage, limit: 9, q: debouncedSearch }),
     placeholderData: keepPreviousData,
-    initialData:
-      !debouncedSearch && currentPage === 1 && initialData
-        ? initialData
-        : undefined,
   });
   const clients = data?.data ?? [];
   const clientsMeta = data?.metadata ?? null;
@@ -286,6 +279,8 @@ export function ClientsContent({
   };
 
   const isDeleting = deleteMutation.isPending;
+
+  if (isLoading) return <ClientsSkeleton />;
 
   const handleTogglePortal = async (
     client: Client,
