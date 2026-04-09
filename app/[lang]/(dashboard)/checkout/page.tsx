@@ -29,7 +29,7 @@ export default async function CheckoutPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-background">
-      <CheckoutCardAnimator className="w-full max-w-md space-y-8 glass p-10 rounded-2xl relative">
+      <CheckoutCardAnimator className="w-full max-w-md space-y-8 glass p-10 relative">
         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-primary/20 blur-2xl rounded-full" />
 
         <div className="text-center">
@@ -41,7 +41,7 @@ export default async function CheckoutPage() {
         </div>
 
         {/* Plan Details */}
-        <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 flex items-start gap-4">
+        <div className="p-4 border border-primary/20 bg-primary/5 flex items-start gap-4">
           <Zap className="w-5 h-5 text-primary shrink-0 mt-0.5" />
           <div>
             <h3 className="font-semibold text-sm">

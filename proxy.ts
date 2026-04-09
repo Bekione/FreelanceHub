@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { locales, defaultLocale, hasLocale, freeLocales } from "@/lib/i18n/config";
+import {
+  locales,
+  defaultLocale,
+  hasLocale,
+  freeLocales,
+} from "@/lib/i18n/config";
 import type { Locale } from "@/lib/i18n/config";
 
 // In production (HTTPS), Better-Auth prefixes the cookie with "__Secure-"
@@ -37,7 +42,9 @@ function getLocale(request: NextRequest, isDashboardPath: boolean): Locale {
     // For dashboard paths, Pro locales are not allowed for free users.
     // Since we can't check subscription here, fall back to "en" for Pro locales
     // on dashboard paths — the dashboard layout will handle Pro users correctly.
-    const isProLocale = !(freeLocales as readonly string[]).includes(cookieValue);
+    const isProLocale = !(freeLocales as readonly string[]).includes(
+      cookieValue,
+    );
     if (isDashboardPath && isProLocale) {
       return defaultLocale;
     }
@@ -46,7 +53,9 @@ function getLocale(request: NextRequest, isDashboardPath: boolean): Locale {
   // 2. Accept-Language header
   const headerLocale = detectLocaleFromHeader(request);
   // Same Pro locale guard for dashboard paths
-  const isProLocale = !(freeLocales as readonly string[]).includes(headerLocale);
+  const isProLocale = !(freeLocales as readonly string[]).includes(
+    headerLocale,
+  );
   if (isDashboardPath && isProLocale) return defaultLocale;
   return headerLocale;
 }
@@ -63,6 +72,37 @@ function stripLocale(pathname: string): string {
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // ── Mode Toggle (coming soon / maintenance) ────────────────────────────────
+  // Skip for API routes, static files, and the mode pages themselves
+  const isApiOrStatic =
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/_next/") ||
+    pathname.includes("/coming-soon") ||
+    pathname.includes("/maintenance");
+
+  if (!isApiOrStatic) {
+    const adminSecret = process.env.ADMIN_BYPASS_SECRET;
+    const adminCookie = request.cookies.get("admin_bypass")?.value;
+    const isAdmin = adminSecret && adminCookie === adminSecret;
+
+    if (!isAdmin) {
+      const maintenanceMode =
+        process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
+      const comingSoonMode = process.env.NEXT_PUBLIC_COMING_SOON === "true";
+
+      if (maintenanceMode) {
+        return NextResponse.rewrite(
+          new URL(`/${defaultLocale}/maintenance`, request.url),
+        );
+      }
+      if (comingSoonMode) {
+        return NextResponse.rewrite(
+          new URL(`/${defaultLocale}/coming-soon`, request.url),
+        );
+      }
+    }
+  }
 
   // ── Check if pathname already has a supported locale prefix ───────────────
   const pathnameLocale = locales.find(
