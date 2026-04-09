@@ -142,6 +142,13 @@ model Profile {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+
 model Client {
   id        String    @id @default(cuid())
   name      String
