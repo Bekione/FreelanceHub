@@ -51,7 +51,7 @@ const CountdownTimer: React.FC<CountdownProps> = ({ targetDate }) => {
       {Object.entries(timeLeft).map(([unit, value]) => (
         <motion.div
           key={unit}
-          className="glass flex flex-col items-center justify-center rounded-lg p-3 shadow-md"
+          className="bg-card/10 backdrop-blur-sm border border-foreground/8 flex flex-col items-center justify-center rounded-lg p-3 shadow-md"
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.5 }}

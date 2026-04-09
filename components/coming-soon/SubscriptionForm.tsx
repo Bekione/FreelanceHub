@@ -68,7 +68,7 @@ const SubscriptionForm: React.FC = () => {
   };
 
   return (
-    <div className="relative mt-4 mx-auto h-14 flex items-center gap-2 p-2 glass-strong rounded-full shadow-lg max-w-md">
+    <div className="relative mt-4 mx-auto h-14 flex items-center gap-2 p-2 bg-card/10 backdrop-blur-sm border border-foreground/8 rounded-full shadow-lg max-w-md">
       <input
         type="email"
         placeholder="your email here"
