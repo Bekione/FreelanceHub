@@ -63,9 +63,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/translation-context";
+import {
+  toastMutationError,
+  fetchJson,
+} from "@/lib/network-error";
+import { useNetworkStatusContext } from "@/contexts/network-status-context";
 
 const emptyForm = { name: "", email: "", company: "", phone: "", notes: "" };
 
@@ -82,12 +86,68 @@ export function ClientsContent() {
     Number(searchParams.get("page")) || 1,
   );
 
+  // Use the network status context for reactive offline detection
+  const { isOnline } = useNetworkStatusContext();
+  const isOffline = !isOnline;
+  
+  // Determine if we should use cached data
+  const shouldUseCachedData = isOffline && debouncedSearch;
+
   const { data, isFetching, isLoading } = useQuery({
     ...clientsQueryOptions({ page: currentPage, limit: 9, q: debouncedSearch }),
     placeholderData: keepPreviousData,
+    enabled: !shouldUseCachedData, // Don't fetch if offline and searching
   });
   const clients = data?.data ?? [];
   const clientsMeta = data?.metadata ?? null;
+  
+  // Get cached data for offline filtering
+  const getCachedClients = () => {
+    // Try to get any cached clients data
+    const cache = queryClient.getQueryCache();
+    const queries = cache.findAll({ queryKey: queryKeys.clients() });
+    
+    // Collect all cached clients from all pages
+    const allClients: Client[] = [];
+    queries.forEach((query) => {
+      const data = query.state.data as any;
+      if (data?.data && Array.isArray(data.data)) {
+        allClients.push(...data.data);
+      }
+    });
+    
+    // Remove duplicates by id
+    const uniqueClients = Array.from(
+      new Map(allClients.map(c => [c.id, c])).values()
+    );
+    
+    return uniqueClients;
+  };
+
+  // Client-side filtering function
+  const filterClientsLocally = (clients: Client[], searchTerm: string) => {
+    if (!searchTerm) return clients;
+    
+    const term = searchTerm.toLowerCase();
+    return clients.filter((client) => {
+      return (
+        client.name.toLowerCase().includes(term) ||
+        (client.email?.toLowerCase() || "").includes(term) ||
+        (client.company?.toLowerCase() || "").includes(term) ||
+        (client.phone?.toLowerCase() || "").includes(term)
+      );
+    });
+  };
+  
+  // Get clients to display (either from query or filtered cache)
+  let displayClients = clients;
+  let isShowingCachedResults = false;
+  
+  if (shouldUseCachedData) {
+    const cachedClients = getCachedClients();
+    displayClients = filterClientsLocally(cachedClients, debouncedSearch);
+    isShowingCachedResults = true;
+  }
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -176,6 +236,13 @@ export function ClientsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (isOffline) {
+      toast.warning("You're offline", {
+        description: "Photo upload is unavailable while offline.",
+      });
+      return;
+    }
+
     // Use absolute local URL for smooth, flicker-free preview immediately
     const objectUrl = URL.createObjectURL(file);
     setPhotoPreview(objectUrl);
@@ -206,6 +273,10 @@ export function ClientsContent() {
           queryClient.invalidateQueries({ queryKey: queryKeys.clients() });
         }
       }
+    } catch (err) {
+      toastMutationError(err, "Failed to upload photo.");
+      setPhotoPreview((editingClient as any)?.imageUrl ?? null);
+      setPhotoChanged(false);
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -217,14 +288,13 @@ export function ClientsContent() {
         ? `/api/clients/${editingClient.id}`
         : "/api/clients";
       const method = editingClient ? "PATCH" : "POST";
-      const res = await fetch(url, {
+      const { data, error } = await fetchJson(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      if (!res.ok) throw json;
-      return json;
+      if (error) throw new Error(error);
+      return data;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.clients() });
@@ -241,9 +311,7 @@ export function ClientsContent() {
         setShowUpgradeModal(true);
         return;
       }
-      toast.error(t("toasts.failed"), {
-        description: err?.error ?? "Unknown error",
-      });
+      toastMutationError(err);
     },
   });
 
@@ -255,10 +323,11 @@ export function ClientsContent() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/clients/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (!res.ok) throw json;
-      return json;
+      const { data, error } = await fetchJson(`/api/clients/${id}`, {
+        method: "DELETE",
+      });
+      if (error) throw new Error(error);
+      return data;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.clients() });
@@ -412,11 +481,19 @@ export function ClientsContent() {
           </div>
         </div>
 
+        {/* Offline Indicator */}
+        {isShowingCachedResults && (
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
+            <Search className="h-4 w-4 shrink-0" />
+            <span>{t("offline.cachedResults")}</span>
+          </div>
+        )}
+
         <div
           className={`grid gap-6 md:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200 ${isFetching ? "opacity-60" : "opacity-100"}`}
         >
-          {clients.length > 0 ? (
-            clients.map((client, index) => (
+          {displayClients.length > 0 ? (
+            displayClients.map((client, index) => (
               <motion.div
                 key={client.id}
                 initial={{ opacity: 0, y: 10 }}
