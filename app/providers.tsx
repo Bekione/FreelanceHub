@@ -15,7 +15,6 @@ interface ProvidersProps {
  * QueryClientProvider for TanStack Query.
  * ThemeProvider and Toaster live in app/layout.tsx so they never
  * re-mount during client-side locale navigation.
- * NetworkStatusProvider lives in ClientLayoutWrapper at the root layout level.
  */
 export function Providers({ children, dir = "ltr" }: ProvidersProps) {
   // NOTE: Do NOT use useState here — getQueryClient() handles the singleton

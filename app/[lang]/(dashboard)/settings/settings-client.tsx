@@ -44,12 +44,7 @@ import { locales, freeLocales, LOCALE_DISPLAY_NAMES } from "@/lib/i18n/config";
 import type { Locale, FreeLocale } from "@/lib/i18n/config";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/translation-context";
-import {
-  toastMutationError,
-  fetchJson,
-} from "@/lib/network-error";
 import { cn } from "@/lib/utils";
-import { useNetworkStatusContext } from "@/contexts/network-status-context";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface UsageData {
@@ -132,10 +127,6 @@ export function SettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  
-  // Use the network status context for reactive offline detection
-  const { isOnline } = useNetworkStatusContext();
-  const isOffline = !isOnline;
 
   const [activeTab, setActiveTab] = useState(
     searchParams.get("tab") || "account",
@@ -268,22 +259,13 @@ export function SettingsContent() {
   }, []);
 
   const handleManageBilling = async () => {
-    if (isOffline) {
-      toast.warning("You're offline", {
-        description: "Cannot open billing portal while offline.",
-      });
-      return;
-    }
     setIsLoadingPortal(true);
     try {
-      const { data, error } = await fetchJson(
-        "/api/stripe/create-portal-session",
-        {
-          method: "POST",
-        },
-      );
-      if (error) throw new Error(error);
-      if (data?.url) window.location.href = data.url;
+      const res = await fetch("/api/stripe/create-portal-session", {
+        method: "POST",
+      });
+      const { url } = await res.json();
+      if (url) window.location.href = url;
     } catch {
       toast.error(t("toasts.failedToBillingPortal"));
     } finally {
@@ -352,15 +334,15 @@ export function SettingsContent() {
     if (key === "paymentDetails") setPaymentDetailsPref(value);
 
     try {
-      const { error } = await fetchJson("/api/settings/profile", {
+      const res = await fetch("/api/settings/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [key]: value }),
       });
-      if (error) throw new Error(error);
+      if (!res.ok) throw new Error();
       toast.success(t("toasts.preferencesUpdated"));
-    } catch (err) {
-      toastMutationError(err, t("toasts.failedToUpdate"));
+    } catch {
+      toast.error(t("toasts.failedToUpdate"));
     } finally {
       setIsSavingPref(false);
     }
@@ -376,28 +358,28 @@ export function SettingsContent() {
     setLanguagePref(locale);
     setIsSavingPref(true);
     try {
-      const { data, error, response } = await fetchJson(
-        "/api/settings/profile",
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ language: locale }),
-        },
-      );
-      if (response.status === 403 && data?.code === "UPGRADE_REQUIRED") {
-        setShowLanguageUpgradeModal(true);
-        setLanguagePref(languagePref); // revert
-        return;
+      const res = await fetch("/api/settings/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ language: locale }),
+      });
+      if (res.status === 403) {
+        const body = await res.json();
+        if (body.code === "UPGRADE_REQUIRED") {
+          setShowLanguageUpgradeModal(true);
+          setLanguagePref(languagePref); // revert
+          return;
+        }
       }
-      if (error) throw new Error(error);
+      if (!res.ok) throw new Error();
 
       // Update cookie and navigate to new locale path via router (no reload)
       document.cookie = `NEXT_LOCALE=${locale}; Max-Age=31536000; Path=/; SameSite=Lax`;
       const segments = window.location.pathname.split("/");
       segments[1] = locale;
       router.push(segments.join("/") + window.location.search);
-    } catch (err) {
-      toastMutationError(err, t("toasts.failedToUpdateLanguage"));
+    } catch {
+      toast.error(t("toasts.failedToUpdateLanguage"));
       setLanguagePref(languagePref); // revert on error
     } finally {
       setIsSavingPref(false);
@@ -407,15 +389,15 @@ export function SettingsContent() {
   const handleSaveBranding = async () => {
     setIsSavingBrand(true);
     try {
-      const { error } = await fetchJson("/api/settings/profile", {
+      const res = await fetch("/api/settings/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ brandColor, invoicePrefix, brandLogoUrl }),
       });
-      if (error) throw new Error(error);
+      if (!res.ok) throw new Error();
       toast.success(t("toasts.brandingUpdated"));
-    } catch (err) {
-      toastMutationError(err, t("toasts.failedToSaveBranding"));
+    } catch {
+      toast.error(t("toasts.failedToSaveBranding"));
     } finally {
       setIsSavingBrand(false);
     }
@@ -425,36 +407,32 @@ export function SettingsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (isOffline) {
-      toast.warning("You're offline", {
-        description: "Logo upload is unavailable while offline.",
-      });
-      return;
-    }
-
     setIsUploadingLogo(true);
     const formData = new FormData();
     formData.append("file", file);
 
     try {
-      const { data, error, response } = await fetchJson(
-        "/api/upload?intent=brandLogo",
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+      const res = await fetch("/api/upload?intent=brandLogo", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (response.status === 413) {
-        throw new Error("Image is too large. Please use a file under 5MB.");
+      let errMessage = "Upload failed";
+      try {
+        const data = await res.json();
+        if (!res.ok) errMessage = data.error || errMessage;
+        else {
+          setBrandLogoUrl(data.url);
+          toast.success(t("toasts.logoUploaded"));
+          return;
+        }
+      } catch {
+        if (res.status === 413)
+          errMessage = "Image is too large. Please use a file under 5MB.";
       }
-
-      if (error) throw new Error(error);
-
-      setBrandLogoUrl(data.url);
-      toast.success(t("toasts.logoUploaded"));
+      if (!res.ok) throw new Error(errMessage);
     } catch (err: any) {
-      toastMutationError(err, "Failed to upload logo");
+      toast.error(err.message || "Failed to upload logo");
     } finally {
       setIsUploadingLogo(false);
       if (logoInputRef.current) logoInputRef.current.value = "";

@@ -719,10 +719,5 @@
     "successTitle": "邮箱已验证！",
     "successMessage": "感谢您验证邮箱。所有功能现已全面解锁。",
     "successDismiss": "知道了"
-  },
-  "offline": {
-    "cachedResults": "您处于离线状态。结果可能仅限于缓存数据。",
-    "offlineMessage": "您处于离线状态 — 重新连接后将同步更改。",
-    "backOnline": "重新上线！"
   }
 }

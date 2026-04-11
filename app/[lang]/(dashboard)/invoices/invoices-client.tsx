@@ -70,10 +70,9 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/translation-context";
-import { toastMutationError, fetchJson } from "@/lib/network-error";
-import { useNetworkStatusContext } from "@/contexts/network-status-context";
 
 type InvoiceStatus = Invoice["status"];
 
@@ -122,13 +121,6 @@ export function InvoicesContent() {
     Number(searchParams.get("page")) || 1,
   );
 
-  // Use the network status context for reactive offline detection
-  const { isOnline } = useNetworkStatusContext();
-  const isOffline = !isOnline;
-  
-  // Determine if we should use cached data (when offline AND filtering/searching)
-  const shouldUseCachedData = isOffline && (debouncedSearch || statusFilter !== "all");
-
   const {
     data: invoicesData,
     isFetching,
@@ -141,68 +133,9 @@ export function InvoicesContent() {
       status: statusFilter,
     }),
     placeholderData: keepPreviousData,
-    enabled: !shouldUseCachedData, // Don't fetch if offline and searching
   });
   const invoices = invoicesData?.data ?? [];
   const invoicesMeta = invoicesData?.metadata ?? null;
-  
-  // Get cached data for offline filtering
-  const getCachedInvoices = () => {
-    // Try to get any cached invoices data
-    const cache = queryClient.getQueryCache();
-    const queries = cache.findAll({ queryKey: queryKeys.invoices() });
-    
-    // Collect all cached invoices from all pages
-    const allInvoices: Invoice[] = [];
-    queries.forEach((query) => {
-      const data = query.state.data as any;
-      if (data?.data && Array.isArray(data.data)) {
-        allInvoices.push(...data.data);
-      }
-    });
-    
-    // Remove duplicates by id
-    const uniqueInvoices = Array.from(
-      new Map(allInvoices.map(i => [i.id, i])).values()
-    );
-    
-    return uniqueInvoices;
-  };
-
-  // Client-side filtering function
-  const filterInvoicesLocally = (invoices: Invoice[], searchTerm: string, statusFilter: string) => {
-    let filtered = invoices;
-    
-    // Apply status filter
-    if (statusFilter && statusFilter !== "all") {
-      filtered = filtered.filter((invoice) => invoice.status === statusFilter);
-    }
-    
-    // Apply search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((invoice) => {
-        return (
-          invoice.invoiceNumber.toLowerCase().includes(term) ||
-          (invoice.client?.name?.toLowerCase() || "").includes(term) ||
-          (invoice.project?.title?.toLowerCase() || "").includes(term) ||
-          invoice.amount.toString().includes(term)
-        );
-      });
-    }
-    
-    return filtered;
-  };
-  
-  // Get invoices to display (either from query or filtered cache)
-  let displayInvoices = invoices;
-  let isShowingCachedResults = false;
-  
-  if (shouldUseCachedData) {
-    const cachedInvoices = getCachedInvoices();
-    displayInvoices = filterInvoicesLocally(cachedInvoices, debouncedSearch, statusFilter);
-    isShowingCachedResults = true;
-  }
 
   const { data: metricsData } = useQuery(metricsQueryOptions());
   const { data: clientsData } = useQuery(clientsQueryOptions({ limit: 100 }));
@@ -307,13 +240,14 @@ export function InvoicesContent() {
         ? `/api/invoices/${editingInvoice.id}`
         : "/api/invoices";
       const method = editingInvoice ? "PATCH" : "POST";
-      const { data, error } = await fetchJson(url, {
+      const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (error) throw new Error(error);
-      return data;
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.invoices() });
@@ -331,7 +265,9 @@ export function InvoicesContent() {
         setShowUpgradeModal(true);
         return;
       }
-      toastMutationError(err);
+      toast.error(t("toasts.failed"), {
+        description: err?.error ?? "Unknown error",
+      });
     },
   });
 
@@ -348,11 +284,10 @@ export function InvoicesContent() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await fetchJson(`/api/invoices/${id}`, {
-        method: "DELETE",
-      });
-      if (error) throw new Error(error);
-      return data;
+      const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.invoices() });
@@ -361,7 +296,9 @@ export function InvoicesContent() {
       setIsDeleteOpen(false);
     },
     onError: (err: any) => {
-      toastMutationError(err);
+      toast.error(t("toasts.failedToDelete"), {
+        description: err?.error ?? "Unknown error",
+      });
     },
   });
 
@@ -372,13 +309,14 @@ export function InvoicesContent() {
 
   const markPaidMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await fetchJson(`/api/invoices/${id}`, {
+      const res = await fetch(`/api/invoices/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "PAID" }),
       });
-      if (error) throw new Error(error);
-      return data;
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.invoices() });
@@ -386,7 +324,9 @@ export function InvoicesContent() {
       toast.success(t("toasts.invoiceMarkedPaid"));
     },
     onError: (err: any) => {
-      toastMutationError(err);
+      toast.error(t("toasts.failed"), {
+        description: err?.error ?? "Unknown error",
+      });
     },
   });
 
@@ -550,14 +490,6 @@ export function InvoicesContent() {
           </Select>
         </div>
 
-        {/* Offline Indicator */}
-        {isShowingCachedResults && (
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
-            <Search className="h-4 w-4 shrink-0" />
-            <span>{t("offline.cachedResults")}</span>
-          </div>
-        )}
-
         {/* Table */}
         <motion.div
           className={`transition-opacity duration-200 ${isFetching ? "opacity-60" : "opacity-100"}`}
@@ -582,8 +514,8 @@ export function InvoicesContent() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {displayInvoices.length > 0 ? (
-                    displayInvoices.map((invoice) => (
+                  {invoices.length > 0 ? (
+                    invoices.map((invoice) => (
                       <TableRow
                         key={invoice.id}
                         className="group transition-colors hover:bg-muted/30"

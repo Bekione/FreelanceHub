@@ -719,10 +719,5 @@
     "successTitle": "E-mail vérifié !",
     "successMessage": "Merci d'avoir vérifié votre e-mail. L'accès complet est maintenant débloqué.",
     "successDismiss": "Compris"
-  },
-  "offline": {
-    "cachedResults": "Vous êtes hors ligne. Les résultats peuvent être limités aux données en cache.",
-    "offlineMessage": "Vous êtes hors ligne — les modifications seront synchronisées lorsque vous vous reconnecterez.",
-    "backOnline": "De retour en ligne !"
   }
 }
