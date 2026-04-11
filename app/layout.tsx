@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
+import { ClientLayoutWrapper } from "@/components/client-layout-wrapper";
 
 export const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -53,7 +54,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ClientLayoutWrapper>
+            {children}
+          </ClientLayoutWrapper>
           <Toaster richColors position="bottom-right" />
         </ThemeProvider>
       </body>
