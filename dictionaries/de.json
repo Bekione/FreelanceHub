@@ -719,5 +719,10 @@
     "successTitle": "E-Mail bestätigt!",
     "successMessage": "Danke für die Bestätigung Ihrer E-Mail. Voller Zugang ist jetzt freigeschaltet.",
     "successDismiss": "Verstanden"
+  },
+  "offline": {
+    "cachedResults": "Sie sind offline. Die Ergebnisse können auf zwischengespeicherte Daten beschränkt sein.",
+    "offlineMessage": "Sie sind offline — Änderungen werden synchronisiert, sobald Sie wieder online sind.",
+    "backOnline": "Wieder online!"
   }
 }

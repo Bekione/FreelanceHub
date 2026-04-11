@@ -720,5 +720,10 @@
     "successTitle": "Email verified!",
     "successMessage": "Thanks for verifying your email. Full access is now unlocked.",
     "successDismiss": "Got it"
+  },
+  "offline": {
+    "cachedResults": "You're offline. Results may be limited to cached data.",
+    "offlineMessage": "You're offline — changes will sync when you reconnect.",
+    "backOnline": "Back online!"
   }
 }

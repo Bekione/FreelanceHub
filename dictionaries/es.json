@@ -719,5 +719,10 @@
     "successTitle": "¡Correo verificado!",
     "successMessage": "Gracias por verificar tu correo. El acceso completo está desbloqueado.",
     "successDismiss": "Entendido"
+  },
+  "offline": {
+    "cachedResults": "Estás desconectado. Los resultados pueden estar limitados a datos en caché.",
+    "offlineMessage": "Estás desconectado — los cambios se sincronizarán cuando te reconectes.",
+    "backOnline": "¡De vuelta en línea!"
   }
 }
