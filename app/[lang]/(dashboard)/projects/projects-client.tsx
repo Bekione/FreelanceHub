@@ -71,10 +71,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n/translation-context";
-import { toastMutationError, fetchJson } from "@/lib/network-error";
-import { useNetworkStatusContext } from "@/contexts/network-status-context";
 
 type ProjectStatus = Project["status"];
 
@@ -161,13 +160,6 @@ export function ProjectsContent() {
     Number(searchParams.get("page")) || 1,
   );
 
-  // Use the network status context for reactive offline detection
-  const { isOnline } = useNetworkStatusContext();
-  const isOffline = !isOnline;
-  
-  // Determine if we should use cached data (when offline AND filtering/searching)
-  const shouldUseCachedData = isOffline && (debouncedSearch || statusFilter !== "all");
-
   const {
     data: projectsData,
     isFetching,
@@ -180,72 +172,9 @@ export function ProjectsContent() {
       status: statusFilter,
     }),
     placeholderData: keepPreviousData,
-    enabled: !shouldUseCachedData, // Don't fetch if offline and searching
   });
   const projects = projectsData?.data ?? [];
   const projectsMeta = projectsData?.metadata ?? null;
-  
-  // Get cached data for offline filtering
-  const getCachedProjects = () => {
-    // Try to get any cached projects data
-    const cache = queryClient.getQueryCache();
-    const queries = cache.findAll({ queryKey: queryKeys.projects() });
-    
-    console.log(`[Offline Cache] Found ${queries.length} cached project queries`);
-    
-    // Collect all cached projects from all pages
-    const allProjects: Project[] = [];
-    queries.forEach((query) => {
-      const data = query.state.data as any;
-      if (data?.data && Array.isArray(data.data)) {
-        console.log(`[Offline Cache] Adding ${data.data.length} projects from cache`);
-        allProjects.push(...data.data);
-      }
-    });
-    
-    // Remove duplicates by id
-    const uniqueProjects = Array.from(
-      new Map(allProjects.map(p => [p.id, p])).values()
-    );
-    
-    console.log(`[Offline Cache] Total unique projects: ${uniqueProjects.length}`);
-    return uniqueProjects;
-  };
-
-  // Client-side filtering function
-  const filterProjectsLocally = (projects: Project[], searchTerm: string, statusFilter: string) => {
-    let filtered = projects;
-    
-    // Apply status filter
-    if (statusFilter && statusFilter !== "all") {
-      filtered = filtered.filter((project) => project.status === statusFilter);
-    }
-    
-    // Apply search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((project) => {
-        return (
-          project.title.toLowerCase().includes(term) ||
-          (project.description?.toLowerCase() || "").includes(term) ||
-          (project.client?.name?.toLowerCase() || "").includes(term) ||
-          (project.platform?.toLowerCase() || "").includes(term)
-        );
-      });
-    }
-    
-    return filtered;
-  };
-  
-  // Get projects to display (either from query or filtered cache)
-  let displayProjects = projects;
-  let isShowingCachedResults = false;
-  
-  if (shouldUseCachedData) {
-    const cachedProjects = getCachedProjects();
-    displayProjects = filterProjectsLocally(cachedProjects, debouncedSearch, statusFilter);
-    isShowingCachedResults = true;
-  }
 
   // Non-suspending query for clients (used only in form dropdowns)
   const { data: clientsData } = useQuery(clientsQueryOptions({ limit: 100 }));
@@ -341,13 +270,14 @@ export function ProjectsContent() {
         ? `/api/projects/${editingProject.id}`
         : "/api/projects";
       const method = editingProject ? "PATCH" : "POST";
-      const { data, error } = await fetchJson(url, {
+      const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (error) throw new Error(error);
-      return data;
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
     },
     onSuccess: async (savedProject) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.projects() });
@@ -388,7 +318,9 @@ export function ProjectsContent() {
         setShowUpgradeModal(true);
         return;
       }
-      toastMutationError(err);
+      toast.error(t("toasts.failed"), {
+        description: err?.error ?? "Unknown error",
+      });
     },
   });
 
@@ -409,11 +341,10 @@ export function ProjectsContent() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { data, error } = await fetchJson(`/api/projects/${id}`, {
-        method: "DELETE",
-      });
-      if (error) throw new Error(error);
-      return data;
+      const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (!res.ok) throw json;
+      return json;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.projects() });
@@ -422,7 +353,9 @@ export function ProjectsContent() {
       setIsDeleteOpen(false);
     },
     onError: (err: any) => {
-      toastMutationError(err);
+      toast.error(t("toasts.failed"), {
+        description: err?.error ?? "Unknown error",
+      });
       setIsDeleteOpen(false);
     },
   });
@@ -537,19 +470,11 @@ export function ProjectsContent() {
           </Select>
         </div>
 
-        {/* Offline Indicator */}
-        {isShowingCachedResults && (
-          <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-3 flex items-center gap-2 text-sm text-amber-700 dark:text-amber-400">
-            <Search className="h-4 w-4 shrink-0" />
-            <span>{t("offline.cachedResults")}</span>
-          </div>
-        )}
-
         <div
           className={`grid gap-6 md:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200 ${isFetching ? "opacity-60" : "opacity-100"}`}
         >
-          {displayProjects.length > 0 ? (
-            displayProjects.map((project, index) => (
+          {projects.length > 0 ? (
+            projects.map((project, index) => (
               <motion.div
                 key={project.id}
                 initial={{ opacity: 0, scale: 0.96 }}
