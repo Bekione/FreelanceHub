@@ -5,8 +5,6 @@ import { Sidebar } from "./sidebar";
 import { AppHeader } from "./header";
 import { useTranslation } from "@/lib/i18n/translation-context";
 import { EmailVerificationBanner } from "@/components/dashboard/email-verification-banner";
-import { OfflineProvider } from "@/lib/offline/provider";
-import { OfflineBanner } from "@/components/offline/offline-banner";
 
 export function DashboardLayout({
   children,
@@ -29,23 +27,20 @@ export function DashboardLayout({
   }, []);
 
   return (
-    <OfflineProvider>
-      <OfflineBanner />
-      <div className="flex h-screen bg-background overflow-hidden">
-        <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} version={version} />
+    <div className="flex h-screen bg-background overflow-hidden">
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} version={version} />
 
-        {/* Main content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <AppHeader onMenuClick={() => setSidebarOpen(true)} />
-          <EmailVerificationBanner />
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <AppHeader onMenuClick={() => setSidebarOpen(true)} />
+        <EmailVerificationBanner />
 
-          <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-6">{children}</main>
 
-          <footer className="px-4 py-3 text-center text-xs text-muted-foreground border-t border-border shrink-0">
-            {t("dashboard.madeBy")} Bereket Kinfe
-          </footer>
-        </div>
+        <footer className="px-4 py-3 text-center text-xs text-muted-foreground border-t border-border shrink-0">
+          {t("dashboard.madeBy")} Bereket Kinfe
+        </footer>
       </div>
-    </OfflineProvider>
+    </div>
   );
 }
